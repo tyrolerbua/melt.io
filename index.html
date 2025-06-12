@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abnehm‑Dashboard</title>
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons & Chart.js -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Reusable Utility Cards & Buttons */
+    .card{background:#fff;padding:1rem;border-radius:1rem;box-shadow:0 2px 6px #0001}
+    .cardTitle{font-size:1.125rem;font-weight:600;display:flex;align-items:center;gap:.25rem;margin-bottom:.5rem}
+    .btnPrimary{background:#4f46e5;color:#fff;padding:.5rem 1rem;border-radius:.75rem;font-weight:600}
+    .btnPrimary:hover{background:#4338ca}
+    .btnSecondary{background:#059669;color:#fff;padding:.5rem 1rem;border-radius:.75rem;font-weight:600}
+    .btnSecondary:hover{background:#047857}
+    .btnDisabled{background:#9ca3af !important;cursor:not-allowed !important}
+    .inp{padding:.5rem;border:1px solid #d1d5db;border-radius:.375rem;width:100%}
+    .navBtn{padding:.4rem .6rem;border-radius:.75rem;background:#f3f4f6;box-shadow:0 1px 3px #0001}
+    .navBtn:hover{background:#e5e7eb}
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+<div id="app" class="p-4 space-y-8">
+
+  <!-- SETUP SECTION (gezeigt, falls noch kein Profil vorhanden) -->
+  <section id="setupSection" class="card max-w-md mx-auto space-y-3">
+    <h2 class="cardTitle"><i data-lucide="settings"></i> Grundeinstellungen</h2>
+    <input id="setupStart" type="date" class="inp" placeholder="Startdatum" />
+    <input id="setupEnd" type="date" class="inp" placeholder="Enddatum" />
+    <input id="setupStartWeight" type="number" step="0.1" class="inp" placeholder="Startgewicht (kg)" />
+    <input id="setupGoalWeight" type="number" step="0.1" class="inp" placeholder="Zielgewicht (kg)" />
+    <button onclick="saveSetup()" class="btnPrimary w-full">Speichern &amp; Loslegen</button>
+  </section>
+
+  <!-- MAIN DASHBOARD (verbirgt sich bis Setup fertig) -->
+  <nav id="mainNav" class="hidden sticky top-0 z-40 flex justify-between items-center bg-white/70 backdrop-blur rounded-xl shadow px-4 py-2">
+    <div class="flex gap-2 items-center">
+      <button class="navBtn" data-sec="dashboard"><i data-lucide="home"></i></button>
+      <button class="navBtn" data-sec="daily"><i data-lucide="calendar"></i></button>
+      <button class="navBtn" data-sec="summary"><i data-lucide="bar-chart-3"></i></button>
+    </div>
+    <div class="flex items-center gap-2">
+      <label for="entryDate" class="text-sm hidden sm:block">Datum:</label>
+      <input id="entryDate" type="date" class="inp w-36" />
+    </div>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="hidden space-y-6">
+    <!-- Quick Stats -->
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="card"><h3 class="cardTitle">Aktuelles Gewicht</h3><p id="statCurrentWeight" class="text-3xl font-bold">– kg</p></div>
+      <div class="card"><h3 class="cardTitle">Ø kg/Woche nötig</h3><p id="statAvgWeekly" class="text-3xl font-bold">– kg</p></div>
+      <div class="card"><h3 class="cardTitle">Punkte ges.</h3><p id="statPoints" class="text-3xl font-bold">0</p></div>
+    </div>
+
+    <!-- Eingabe-Bereich -->
+    <div class="grid lg:grid-cols-2 gap-6">
+      <!-- Journal Card -->
+      <div class="card">
+        <h3 class="cardTitle"><i data-lucide="book-open"></i> Journal‑Eintrag</h3>
+        <textarea id="journalText" rows="4" class="inp" placeholder="Wie lief dein Tag?"></textarea>
+        <button onclick="saveJournal()" class="btnPrimary w-full mt-2">Speichern</button>
+      </div>
+
+      <!-- Habit Config Card -->
+      <div class="card">
+        <h3 class="cardTitle"><i data-lucide="check-circle"></i> Habits</h3>
+        <div class="flex gap-2 mb-2"><input id="habitName" class="inp" placeholder="Neuer Habit"/><input id="habitFreq" type="number" min="1" max="7" class="inp w-20" placeholder="x/Woche"/></div>
+        <button onclick="addHabit()" class="btnSecondary w-full mb-2">Hinzufügen</button>
+        <div id="habitList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Measurements -->
+    <div class="card space-y-3">
+      <h3 class="cardTitle"><i data-lucide="ruler"></i> Körpermaße</h3>
+      <div class="grid md:grid-cols-6 gap-2">
+        <input id="mWeight" type="number" step="0.1" class="inp" placeholder="Gewicht"/>
+        <input id="mWaist" type="number" step="0.1" class="inp" placeholder="Bauch"/>
+        <input id="mThigh" type="number" step="0.1" class="inp" placeholder="Oberschenkel"/>
+        <input id="mCalf" type="number" step="0.1" class="inp" placeholder="Unterschenkel"/>
+        <input id="mChest" type="number" step="0.1" class="inp" placeholder="Brust"/>
+        <button onclick="saveMeasurements()" class="btnPrimary">Speichern</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DAILY LOG SECTION -->
+  <section id="daily" class="hidden space-y-6">
+    <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="calendar"></i> Tägliche Übersicht</h2>
+    <!-- High‑level diagram -->
+    <div class="card"><canvas id="pointsChart"></canvas></div>
+    <div id="dailyContainer" class="space-y-4"></div>
+  </section>
+
+  <!-- SUMMARY SECTION -->
+  <section id="summary" class="hidden space-y-6">
+    <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="bar-chart-3"></i> Gesamtübersicht</h2>
+    <div class="grid md:grid-cols-3 gap-4" id="summaryContainer"></div>
+    <div class="card"><canvas id="weightChart"></canvas></div>
+  </section>
+
+</div>
+
+<script>
+'use strict';
+/****************************
+ STORAGE & UTILITIES
+*****************************/
+const PROFILE_KEY="wlt_profile";
+const loadProfileData=()=>JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");
+const saveProfileData=p=>localStorage.setItem(PROFILE_KEY,JSON.stringify(p));
+const $=id=>document.getElementById(id);
+const todayStr=()=>new Date().toISOString().slice(0,10);
+
+let profile=loadProfileData();
+let selectedDate=todayStr();
+let weightChart=null, pointsChart=null;
+
+/****************************
+ INITIAL CHECK
+*****************************/
+if(profile){initApp();}
+
+/****************************
+ SETUP FLOW
+*****************************/
+function saveSetup(){
+  const start=$("setupStart").value,
+        end=$("setupEnd").value,
+        startW=parseFloat($("setupStartWeight").value),
+        goalW=parseFloat($("setupGoalWeight").value);
+  if(!start||!end||!startW||!goalW) return alert("Bitte alle Felder ausfüllen");
+  profile={start,end,startWeight:startW,goalWeight:goalW,habits:[],journal:{},measurements:[],points:0,pointsLog:{},habitLog:{}};
+  saveProfileData(profile);
+  $("setupSection").remove();
+  initApp();
+}
+
+/****************************
+ APP INITIALISIEREN
+*****************************/
+function initApp(){
+  $("mainNav").classList.remove("hidden");
+  $("entryDate").value=selectedDate;
+  showSection("dashboard");
+  renderAll();
+  // Listeners
+  $("entryDate").addEventListener("change",e=>{selectedDate=e.target.value;renderDateSensitive();});
+  document.querySelectorAll(".navBtn").forEach(btn=>btn.addEventListener("click",e=>showSection(e.currentTarget.dataset.sec)));
+  lucide.createIcons();
+}
+
+/****************************
+ SECTION HANDLING
+*****************************/
+function showSection(sec){["dashboard","daily","summary"].forEach(s=>$(s).classList.add("hidden"));$(sec).classList.remove("hidden");if(sec==="daily")drawPointsChart();if(sec==="summary")drawWeightChart();}
+
+/****************************
+ RENDER WRAPPERS
+*****************************/
+function renderAll(){updateStats();drawHabitList();renderDateSensitive();drawWeightChart();drawPointsChart();drawSummaryCards();}
+function renderDateSensitive(){loadJournalText();drawHabitList();updateStats();drawDailyOverview();}
+
+/****************************
+ QUICK STATS
+*****************************/
+function updateStats(){
+  const last=profile.measurements.at(-1);
+  const currentW=last?last.weight:profile.startWeight;
+  $("statCurrentWeight").textContent=currentW.toFixed(1)+" kg";
+  const weeks=(new Date(profile.end)-new Date(profile.start))/(1000*60*60*24*7);
+  $("statAvgWeekly").textContent=((profile.startWeight-profile.goalWeight)/weeks).toFixed(2)+" kg";
+  $("statPoints").textContent=profile.points;
+  saveProfileData(profile);
+}
+
+/****************************
+ JOURNAL
+*****************************/
+function loadJournalText(){$("journalText").value=profile.journal[selectedDate]||"";}
+function saveJournal(){
+  const txt=$("journalText").value.trim();
+  if(!txt) return alert("Bitte zunächst Text eingeben");
+  profile.journal[selectedDate]=txt;
+  profile.pointsLog[selectedDate]=profile.pointsLog[selectedDate]||0;
+  saveProfileData(profile);
+  drawDailyOverview();
+  alert("Journal gespeichert");
+}
+
+/****************************
+ HABITS
+*****************************/
+function addHabit(){
+  const name=$("habitName").value.trim();
+  const freq=parseInt($("habitFreq").value);
+  if(!name||!freq) return alert("Felder ausfüllen");
+  profile.habits.push({name,freq,done:0});
+  saveProfileData(profile);
+  $("habitName").value="";$("habitFreq").value="";
+  drawHabitList();drawSummaryCards();
+}
+function markHabit(idx){
+  const h=profile.habits[idx];
+  const log=profile.habitLog[selectedDate]=profile.habitLog[selectedDate]||[];
+  if(log.includes(h.name)) return;
+  h.done++;
+  log.push(h.name);
+  profile.points++;
+  profile.pointsLog[selectedDate]=(profile.pointsLog[selectedDate]||0)+1;
+  saveProfileData(profile);
+  drawHabitList();drawDailyOverview();updateStats();drawSummaryCards();
+}
+function drawHabitList(){
+  const list=$("habitList");
+  list.innerHTML="";
+  profile.habits.forEach((h,i)=>{
+    const doneToday=profile.habitLog[selectedDate]&&profile.habitLog[selectedDate].includes(h.name);
+    const div=document.createElement("div");
+    div.className="flex justify-between items-center bg-gray-50 rounded p-2";
+    const btnCls=doneToday?"btnDisabled":"bg-emerald-500 text-white px-2 py-1 rounded";
+    div.innerHTML=`<span>${h.name} (${h.done}/${h.freq})</span><button class='${btnCls}' ${doneToday?"disabled":``} onclick='markHabit(${i})'><i data-lucide='${doneToday?"check":"circle"}'></i></button>`;
+    list.appendChild(div);
+  });
+  lucide.createIcons();
+}
+
+/****************************
+ MEASUREMENTS
+*****************************/
+function saveMeasurements(){
+  const weight=parseFloat($("mWeight").value);
+  if(!weight) return alert("Gewicht eingeben");
+  const measurement={date:selectedDate,weight,waist:parseFloat($("mWaist").value),thigh:parseFloat($("mThigh").value),calf:parseFloat($("mCalf").value),chest:parseFloat($("mChest").value)};
+  profile.measurements.push(measurement);
+  const prev=profile.measurements.at(-2);
+  if(prev){
+    const kgLoss=prev.weight-weight;
+    const cmLoss=(prev.waist||0)-(measurement.waist||prev.waist||0);
+    const pts=Math.max(0,kgLoss*5)+Math.max(0,cmLoss*2);
+    profile.points+=pts;
+    profile.pointsLog[selectedDate]=(profile.pointsLog[selectedDate]||0)+pts;
+  }
+  saveProfileData(profile);
+  updateStats();drawDailyOverview();drawWeightChart();drawSummaryCards();alert("Maße gespeichert");
+}
+
+/****************************
+ DAILY OVERVIEW
+*****************************/
+function drawDailyOverview(){
+  const dates=new Set([...Object.keys(profile.journal),...Object.keys(profile.habitLog),...profile.measurements.map(m=>m.date)]);
+  const sorted=[...dates].sort((a,b)=>b.localeCompare(a));
+  const cont=$("dailyContainer");cont.innerHTML="";
+  sorted.forEach(d=>{
+    const j=profile.journal[d]||"-";
+    const habits=profile.habitLog[d]?profile.habitLog[d].join(', '):'-';
+    const m=profile.measurements.find(x=>x.date===d);
+    const w=m?m.weight+' kg':'-';
+    const pts=profile.pointsLog[d]||0;
+    const div=document.createElement('div');
+    div.className='card space-y-1';
+    div.innerHTML=`<div class='flex justify-between items-center'><h4 class='font-semibold'>${d}</h4><span class='font-bold'>${pts} ★</span></div><p><i data-lucide='book'></i> ${j}</p><p><i data-lucide='check-square'></i> ${habits}</p><p><i data-lucide='scales'></i> ${w}</p>`;
+    cont.appendChild(div);
+  });
+  lucide.createIcons();
+}
+
+/****************************
+ CHARTS
+*****************************/
+function drawWeightChart(){
+  const ctx=$("weightChart");if(!ctx)return;
+  if(profile.measurements.length===0){ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height);return;}
+  const labels=profile.measurements.map(m=>m.date);
+  const data=profile.measurements.map(m=>m.weight);
+  if(weightChart)weightChart.destroy();
+  weightChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Gewicht (kg)',data,borderWidth:2,fill:false}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+}
+function drawPointsChart(){
+  const ctx=$("pointsChart");if(!ctx)return;
+  const labels=Object.keys(profile.pointsLog).sort();
+  const data=labels.map(d=>profile.pointsLog[d]);
+  if(pointsChart)pointsChart.destroy();
+  pointsChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Punkte/Tag',data,borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+}
+
+/****************************
+ SUMMARY CARDS
+*****************************/
+function drawSummaryCards(){
+  const cont=$("summaryContainer");cont.innerHTML="";
+  const now=selectedDate;
+  const weeks=Math.max(1,(new Date(now)-new Date(profile.start))/(1000*60*60*24*7));
+  const currentW=profile.measurements.at(-1)?profile.measurements.at(-1).weight:profile.startWeight;
+  const weightLost=profile.startWeight-currentW;
+  const progressPct=((weightLost)/(profile.startWeight-profile.goalWeight)*100).toFixed(0);
+  const avgPts=(profile.points/weeks).toFixed(1);
+  const doneHabits=profile.habits.reduce((a,b)=>a+b.done,0);
+  const expectedHabits=profile.habits.reduce((a,b)=>a+b.freq*weeks,0)||1;
+  const habitPct=Math.min(100,(doneHabits/expectedHabits*100)).toFixed(0);
+  const cards=[
+    {icon:'activity',title:'Gewichtsverlust',val:`${weightLost.toFixed(1)} kg`},
+    {icon:'target',title:'Fortschritt',val:`${progressPct}%`},
+    {icon:'star',title:'Punkte Gesamt',val:profile.points},
+    {icon:'award',title:'Ø Punkte/Woche',val:avgPts},
+    {icon:'check-circle',title:'Habit‑Erfüllung',val:`${habitPct}%`}
+  ];
+  cards.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='card flex flex-col gap-1';
+    div.innerHTML=`<div class='flex items-center gap-2'><i data-lucide='${c.icon}'></i><span class='font-semibold'>${c.title}</span></div><p class='text-2xl font-bold'>${c.val}</p>`;
+    cont.appendChild(div);
+  });
+  lucide.createIcons();
+}
+
+/****************************
+ INITIAL DRAW AFTER LOAD
+*****************************/
+if(profile){drawDailyOverview();drawPointsChart();drawWeightChart();}
+</script>
+</body>
+</html>
