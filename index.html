@@ -10,14 +10,14 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Reusable Utility Cards & Buttons */
+    /* Utility Klassen */
     .card{background:#fff;padding:1rem;border-radius:1rem;box-shadow:0 2px 6px #0001}
     .cardTitle{font-size:1.125rem;font-weight:600;display:flex;align-items:center;gap:.25rem;margin-bottom:.5rem}
     .btnPrimary{background:#4f46e5;color:#fff;padding:.5rem 1rem;border-radius:.75rem;font-weight:600}
     .btnPrimary:hover{background:#4338ca}
     .btnSecondary{background:#059669;color:#fff;padding:.5rem 1rem;border-radius:.75rem;font-weight:600}
     .btnSecondary:hover{background:#047857}
-    .btnDisabled{background:#9ca3af !important;cursor:not-allowed !important}
+    .btnDisabled{background:#9ca3af!important;cursor:not-allowed!important}
     .inp{padding:.5rem;border:1px solid #d1d5db;border-radius:.375rem;width:100%}
     .navBtn{padding:.4rem .6rem;border-radius:.75rem;background:#f3f4f6;box-shadow:0 1px 3px #0001}
     .navBtn:hover{background:#e5e7eb}
@@ -25,8 +25,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
 <div id="app" class="p-4 space-y-8">
-
-  <!-- SETUP SECTION (gezeigt, falls noch kein Profil vorhanden) -->
+  <!-- SETUP SECTION -->
   <section id="setupSection" class="card max-w-md mx-auto space-y-3">
     <h2 class="cardTitle"><i data-lucide="settings"></i> Grundeinstellungen</h2>
     <input id="setupStart" type="date" class="inp" placeholder="Startdatum" />
@@ -35,18 +34,12 @@
     <input id="setupGoalWeight" type="number" step="0.1" class="inp" placeholder="Zielgewicht (kg)" />
     <label class="block text-sm font-medium">Erster Tag der Woche</label>
     <select id="setupWeekStart" class="inp">
-      <option value="1" selected>Montag</option>
-      <option value="0">Sonntag</option>
-      <option value="2">Dienstag</option>
-      <option value="3">Mittwoch</option>
-      <option value="4">Donnerstag</option>
-      <option value="5">Freitag</option>
-      <option value="6">Samstag</option>
+      <option value="1" selected>Montag</option><option value="0">Sonntag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option>
     </select>
-    <button id="setupBtn" class="btnPrimary w-full">Speichern &amp; Loslegen</button>
+    <button id="setupBtn" class="btnPrimary w-full">Speichern & Loslegen</button>
   </section>
 
-  <!-- MAIN DASHBOARD (verbirgt sich bis Setup fertig) -->
+  <!-- MAIN NAV -->
   <nav id="mainNav" class="hidden sticky top-0 z-40 flex justify-between items-center bg-white/70 backdrop-blur rounded-xl shadow px-4 py-2">
     <div class="flex gap-2 items-center">
       <button class="navBtn" data-sec="dashboard"><i data-lucide="home"></i></button>
@@ -65,276 +58,115 @@
     <h3 class="cardTitle"><i data-lucide="sliders"></i> Einstellungen</h3>
     <label class="block text-sm font-medium">Erster Tag der Woche:</label>
     <select id="weekStartSelect" class="inp">
-      <option value="0">Sonntag</option>
-      <option value="1">Montag</option>
-      <option value="2">Dienstag</option>
-      <option value="3">Mittwoch</option>
-      <option value="4">Donnerstag</option>
-      <option value="5">Freitag</option>
-      <option value="6">Samstag</option>
+      <option value="0">Sonntag</option><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option>
     </select>
     <button id="saveWeekBtn" class="btnPrimary w-full">Speichern</button>
   </section>
 
   <!-- DASHBOARD -->
   <section id="dashboard" class="hidden space-y-6">
-    <!-- Quick Stats -->
     <div class="grid md:grid-cols-3 gap-4">
       <div class="card"><h3 class="cardTitle">Aktuelles Gewicht</h3><p id="statCurrentWeight" class="text-3xl font-bold">– kg</p></div>
-      <div class="card"><h3 class="cardTitle">Ø kg/Woche nötig</h3><p id="statAvgWeekly" class="text-3xl font-bold">– kg</p></div>
-      <div class="card"><h3 class="cardTitle">Punkte ges.</h3><p id="statPoints" class="text-3xl font-bold">0</p></div>
+      <div class="card"><h3 class="cardTitle">Ø kg/Woche nötig</h3><p id="statAvgWeekly" class="text-3xl font-bold">– kg</p></div>
+      <div class="card"><h3 class="cardTitle">Punkte</h3><p id="statPoints" class="text-3xl font-bold">0</p></div>
     </div>
 
-    <!-- Eingabe-Bereich -->
+    <!-- Journal & Habits -->
     <div class="grid lg:grid-cols-2 gap-6">
-      <!-- Journal Card -->
-      <div class="card">
-        <h3 class="cardTitle"><i data-lucide="book-open"></i> Journal‑Eintrag</h3>
-        <textarea id="journalText" rows="4" class="inp" placeholder="Wie lief dein Tag?"></textarea>
-        <button id="saveJournalBtn" class="btnPrimary w-full mt-2">Speichern</button>
-      </div>
-
-      <!-- Habit Config Card -->
-      <div class="card">
-        <h3 class="cardTitle"><i data-lucide="check-circle"></i> Habits</h3>
-        <div class="flex gap-2 mb-2"><input id="habitName" class="inp" placeholder="Neuer Habit"/><input id="habitFreq" type="number" min="1" max="7" class="inp w-20" placeholder="x/Woche"/></div>
-        <button id="addHabitBtn" class="btnSecondary w-full mb-2">Hinzufügen</button>
-        <div id="habitList" class="space-y-2"></div>
-      </div>
+      <div class="card"><h3 class="cardTitle"><i data-lucide="book-open"></i> Journal‑Eintrag</h3><textarea id="journalText" rows="4" class="inp" placeholder="Wie lief dein Tag?"></textarea><button id="saveJournalBtn" class="btnPrimary w-full mt-2">Speichern</button></div>
+      <div class="card"><h3 class="cardTitle"><i data-lucide="check-circle"></i> Habits</h3><div class="flex gap-2 mb-2"><input id="habitName" class="inp" placeholder="Neuer Habit"/><input id="habitFreq" type="number" min="1" max="7" class="inp w-20" placeholder="x/Woche"/></div><button id="addHabitBtn" class="btnSecondary w-full mb-2">Hinzufügen</button><div id="habitList" class="space-y-2"></div></div>
     </div>
 
     <!-- Measurements -->
-    <div class="card space-y-3">
-      <h3 class="cardTitle"><i data-lucide="ruler"></i> Körpermaße</h3>
-      <div class="grid md:grid-cols-6 gap-2">
-        <input id="mWeight" type="number" step="0.1" class="inp" placeholder="Gewicht"/>
-        <input id="mWaist" type="number" step="0.1" class="inp" placeholder="Bauch"/>
-        <input id="mThigh" type="number" step="0.1" class="inp" placeholder="Oberschenkel"/>
-        <input id="mCalf" type="number" step="0.1" class="inp" placeholder="Unterschenkel"/>
-        <input id="mChest" type="number" step="0.1" class="inp" placeholder="Brust"/>
-        <button id="saveMeasureBtn" class="btnPrimary">Speichern</button>
-      </div>
-    </div>
+    <div class="card space-y-3"><h3 class="cardTitle"><i data-lucide="ruler"></i> Körpermaße</h3><div class="grid md:grid-cols-6 gap-2"><input id="mWeight" type="number" step="0.1" class="inp" placeholder="Gewicht"/><input id="mWaist" type="number" step="0.1" class="inp" placeholder="Bauch"/><input id="mThigh" type="number" step="0.1" class="inp" placeholder="Oberschenkel"/><input id="mCalf" type="number" step="0.1" class="inp" placeholder="Unterschenkel"/><input id="mChest" type="number" step="0.1" class="inp" placeholder="Brust"/><button id="saveMeasureBtn" class="btnPrimary">Speichern</button></div></div>
   </section>
 
-  <!-- DAILY LOG SECTION -->
-  <section id="daily" class="hidden space-y-6">
-    <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="calendar"></i> Tägliche Übersicht</h2>
-    <div class="card"><canvas id="pointsChart"></canvas></div>
-    <div id="dailyContainer" class="space-y-4"></div>
-  </section>
+  <!-- DAILY LOG -->
+  <section id="daily" class="hidden space-y-6"><h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="calendar"></i> Tägliche Übersicht</h2><div class="card"><canvas id="pointsChart"></canvas></div><div id="dailyContainer" class="space-y-4"></div></section>
 
-  <!-- SUMMARY SECTION -->
-  <section id="summary" class="hidden space-y-6">
-    <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="bar-chart-3"></i> Gesamtübersicht</h2>
-    <div class="grid md:grid-cols-3 gap-4" id="summaryContainer"></div>
-    <div class="card"><canvas id="weightChart"></canvas></div>
-  </section>
-
+  <!-- SUMMARY -->
+  <section id="summary" class="hidden space-y-6"><h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="bar-chart-3"></i> Gesamtübersicht</h2><div class="grid md:grid-cols-3 gap-4" id="summaryContainer"></div><div class="card"><canvas id="weightChart"></canvas></div></section>
 </div>
 
 <script>
 'use strict';
-/****************************
- STORAGE & UTILITIES
-*****************************/
+/************** UTILITIES **************/
 const PROFILE_KEY="wlt_profile";
-const loadProfileData=()=>JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");
-const saveProfileData=p=>localStorage.setItem(PROFILE_KEY,JSON.stringify(p));
 const $=id=>document.getElementById(id);
-const todayStr=()=>new Date().toISOString().slice(0,10);
-const parseDate=s=>new Date(s+"T00:00:00"); // avoid timezone issues
+const loadProfile=()=>JSON.parse(localStorage.getItem(PROFILE_KEY)||"null");
+const saveProfile=p=>localStorage.setItem(PROFILE_KEY,JSON.stringify(p));
+const today=()=>new Date().toISOString().slice(0,10);
+const toDate=s=>new Date(s+"T00:00:00");
 
-let profile=loadProfileData();
-let selectedDate=todayStr();
-let weightChart=null, pointsChart=null;
+let profile=loadProfile();
+let selectedDate=today();
+let weightChart,pointsChart;
 
-/****************************
- HELPERS FOR WEEKS
-*****************************/
-function startOfWeek(dateStr){
-  const d=parseDate(dateStr);
-  const diff=(d.getDay()-profile.weekStart+7)%7;
-  d.setDate(d.getDate()-diff);
-  return d.toISOString().slice(0,10);
-}
-function endOfWeek(dateStr){const s=startOfWeek(dateStr);const d=parseDate(s);d.setDate(d.getDate()+6);return d.toISOString().slice(0,10);}
+/************** WEEK HELPERS **************/
+const weekStart=()=>profile.weekStart??1; // fallback Montag
+const startOfWeek=d=>{const date=toDate(d);const diff=(date.getDay()-weekStart()+7)%7;date.setDate(date.getDate()-diff);return date.toISOString().slice(0,10);} ;
+const endOfWeek=d=>{const s=startOfWeek(d);const dt=toDate(s);dt.setDate(dt.getDate()+6);return dt.toISOString().slice(0,10);} ;
 
-/****************************
- APP INITIALISIERUNG
-*****************************/
+/************** DOM READY **************/
 window.addEventListener('DOMContentLoaded',()=>{
-  // Event Bindings (setup always available)
-  $("setupBtn").addEventListener('click',saveSetup);
-
+  $("setupBtn").addEventListener('click',onSaveSetup);
   if(profile){initApp();}
 });
 
-/************ SETUP FLOW *************/
-function saveSetup(){
-  const start=$("setupStart").value,
-        end=$("setupEnd").value,
-        startW=parseFloat($("setupStartWeight").value),
-        goalW=parseFloat($("setupGoalWeight").value),
-        weekStart=parseInt($("setupWeekStart").value);
-  if(!start||!end||!startW||!goalW) return alert("Bitte alle Felder ausfüllen");
-  profile={start,end,startWeight:startW,goalWeight:goalW,weekStart,habits:[],journal:{},measurements:[],points:0,pointsLog:{},habitLog:{}};
-  saveProfileData(profile);
+/************** SETUP  **************/
+function onSaveSetup(){
+  const start=$("setupStart").value,end=$("setupEnd").value,startW=parseFloat($("setupStartWeight").value),goalW=parseFloat($("setupGoalWeight").value),ws=parseInt($("setupWeekStart").value);
+  if(!start||!end||!startW||!goalW)return alert("Bitte alle Felder ausfüllen");
+  profile={start,end,startWeight:startW,goalWeight:goalW,weekStart:ws,habits:[],journal:{},measurements:[],points:0,pointsLog:{},habitLog:{}};
+  saveProfile(profile);
   $("setupSection").remove();
   initApp();
 }
 
-/************ INIT APP *************/
+/************** APP INIT **************/
 function initApp(){
-  $("mainNav").classList.remove("hidden");
+  const nav=$("mainNav");if(nav)nav.classList.remove("hidden");
   $("entryDate").value=selectedDate;
-  $("weekStartSelect").value=profile.weekStart;
-  // Bind dynamic listeners
-  $("entryDate").addEventListener("change",e=>{selectedDate=e.target.value;renderDateSensitive();});
-  document.querySelectorAll(".navBtn").forEach(btn=>btn.addEventListener("click",e=>showSection(e.currentTarget.dataset.sec)));
-  $("openSettings").addEventListener("click",()=>$("settingsPanel").classList.toggle("hidden"));
-  $("saveWeekBtn").addEventListener("click",saveWeekStart);
-  $("saveJournalBtn").addEventListener("click",saveJournal);
-  $("addHabitBtn").addEventListener("click",addHabit);
-  $("saveMeasureBtn").addEventListener("click",saveMeasurements);
+  $("weekStartSelect").value=weekStart();
+  $("entryDate").addEventListener('change',e=>{selectedDate=e.target.value;renderPerDate();});
+  document.querySelectorAll('.navBtn').forEach(b=>b.addEventListener('click',e=>showSection(e.currentTarget.dataset.sec)));
+  $("openSettings").addEventListener('click',()=>$("settingsPanel").classList.toggle('hidden'));
+  $("saveWeekBtn").addEventListener('click',()=>{profile.weekStart=parseInt($("weekStartSelect").value);saveProfile(profile);$("settingsPanel").classList.add('hidden');drawHabitList();drawSummary();});
+  $("saveJournalBtn").addEventListener('click',saveJournal);
+  $("addHabitBtn").addEventListener('click',addHabit);
+  $("saveMeasureBtn").addEventListener('click',saveMeasurement);
   lucide.createIcons();
-  showSection("dashboard");
+  showSection('dashboard');
   renderAll();
 }
-function saveWeekStart(){profile.weekStart=parseInt($("weekStartSelect").value);saveProfileData(profile);$("settingsPanel").classList.add("hidden");drawHabitList();drawSummaryCards();}
 
-/************ SECTION HANDLING *************/
-function showSection(sec){["dashboard","daily","summary"].forEach(s=>$(s).classList.add("hidden"));$(sec).classList.remove("hidden");if(sec==="daily")drawPointsChart();if(sec==="summary")drawWeightChart();}
+/************** SECTION HANDLING **************/
+function showSection(id){['dashboard','daily','summary'].forEach(sec=>$(sec)?.classList.add('hidden'));$(id)?.classList.remove('hidden');if(id==='daily')drawPointsChart();if(id==='summary')drawWeightChart();}
 
-/************ RENDER WRAPPERS *************/
-function renderAll(){updateStats();drawHabitList();renderDateSensitive();drawWeightChart();drawPointsChart();drawSummaryCards();}
-function renderDateSensitive(){loadJournalText();drawHabitList();updateStats();drawDailyOverview();}
+/************** RENDER **************/
+function renderAll(){updateStats();drawHabitList();renderPerDate();drawWeightChart();drawPointsChart();drawSummary();}
+function renderPerDate(){loadJournal();drawHabitList();updateStats();drawDaily();}
 
-/************ QUICK STATS *************/
-function updateStats(){
-  const last=profile.measurements.at(-1);
-  const currentW=last?last.weight:profile.startWeight;
-  $("statCurrentWeight").textContent=currentW.toFixed(1)+" kg";
-  const weeks=(new Date(profile.end)-new Date(profile.start))/(1000*60*60*24*7);
-  $("statAvgWeekly").textContent=((profile.startWeight-profile.goalWeight)/weeks).toFixed(2)+" kg";
-  $("statPoints").textContent=profile.points;
-  saveProfileData(profile);
-}
+/************** STATS **************/
+function updateStats(){const last=profile.measurements.at(-1);const cw=last?last.weight:profile.startWeight;$("statCurrentWeight").textContent=cw.toFixed(1)+' kg';const weeksDiff=(toDate(profile.end)-toDate(profile.start))/(1000*60*60*24*7);$("statAvgWeekly").textContent=((profile.startWeight-profile.goalWeight)/weeksDiff).toFixed(2)+' kg';$("statPoints").textContent=profile.points;saveProfile(profile);} ;
 
-/************ JOURNAL *************/
-function loadJournalText(){$("journalText").value=profile.journal[selectedDate]||"";}
-function saveJournal(){
-  const txt=$("journalText").value.trim();
-  if(!txt) return alert("Bitte zunächst Text eingeben");
-  profile.journal[selectedDate]=txt;
-  profile.pointsLog[selectedDate]=profile.pointsLog[selectedDate]||0;
-  saveProfileData(profile);
-  drawDailyOverview();
-  alert("Journal gespeichert");
-}
+/************** JOURNAL **************/
+function loadJournal(){$("journalText").value=profile.journal[selectedDate]||'';} ;
+function saveJournal(){const txt=$("journalText").value.trim();if(!txt)return alert('Bitte zuerst Text eingeben');profile.journal[selectedDate]=txt;profile.pointsLog[selectedDate]=profile.pointsLog[selectedDate]||0;saveProfile(profile);drawDaily();alert('Journal gespeichert');}
 
-/************ HABITS *************/
-function addHabit(){
-  const name=$("habitName").value.trim(), freq=parseInt($("habitFreq").value);
-  if(!name||!freq) return alert("Felder ausfüllen");
-  profile.habits.push({name,freq});
-  saveProfileData(profile);
-  $("habitName").value="";$("habitFreq").value="";
-  drawHabitList();drawSummaryCards();
-}
-function doneCountThisWeek(habitName){
-  const s=startOfWeek(selectedDate), e=endOfWeek(selectedDate);
-  let n=0; for(const [d,arr] of Object.entries(profile.habitLog)){if(d>=s&&d<=e&&arr.includes(habitName)) n++;}
-  return n;
-}
-function markHabit(idx){
-  const h=profile.habits[idx], doneWeek=doneCountThisWeek(h.name);
-  if(doneWeek>=h.freq) return alert("Wochenziel erreicht");
-  const log=profile.habitLog[selectedDate]=profile.habitLog[selectedDate]||[];
-  if(log.includes(h.name)) return;
-  log.push(h.name);
-  profile.points++; profile.pointsLog[selectedDate]=(profile.pointsLog[selectedDate]||0)+1;
-  saveProfileData(profile);
-  drawHabitList();drawDailyOverview();updateStats();drawSummaryCards();
-}
-function drawHabitList(){
-  const list=$("habitList"); list.innerHTML="";
-  profile.habits.forEach((h,i)=>{
-    const doneWeek=doneCountThisWeek(h.name), doneToday=profile.habitLog[selectedDate]&&profile.habitLog[selectedDate].includes(h.name);
-    const disabled=doneToday||doneWeek>=h.freq;
-    const div=document.createElement('div');div.className='flex justify-between items-center bg-gray-50 rounded p-2';
-    div.innerHTML=`<span>${h.name} (${doneWeek}/${h.freq})</span><button class='${disabled?"btnDisabled":"bg-emerald-500 text-white px-2 py-1 rounded"}' ${disabled?"disabled":""} onclick='markHabit(${i})'><i data-lucide='${doneToday?"check":"circle"}'></i></button>`;
-    list.appendChild(div);
-  });
-  lucide.createIcons();
-}
+/************** HABITS **************/
+function addHabit(){const name=$("habitName").value.trim(),freq=parseInt($("habitFreq").value);if(!name||!freq)return alert('Felder ausfüllen');profile.habits.push({name,freq});saveProfile(profile);$("habitName").value=$("habitFreq").value='';drawHabitList();drawSummary();}
+function doneThisWeek(h){const s=startOfWeek(selectedDate),e=endOfWeek(selectedDate);let n=0;for(const [d,arr] of Object.entries(profile.habitLog)){if(d>=s&&d<=e&&arr.includes(h))n++;}return n;}
+function markHabit(i){const h=profile.habits[i];if(doneThisWeek(h.name)>=h.freq)return;const log=profile.habitLog[selectedDate]=profile.habitLog[selectedDate]||[];if(log.includes(h.name))return;log.push(h.name);profile.points++;profile.pointsLog[selectedDate]=(profile.pointsLog[selectedDate]||0)+1;saveProfile(profile);drawHabitList();drawDaily();updateStats();drawSummary();}
+function drawHabitList(){const wrap=$("habitList");wrap.innerHTML='';profile.habits.forEach((h,i)=>{const dw=doneThisWeek(h.name),dt=profile.habitLog[selectedDate]?.includes(h.name);const dis=dt||dw>=h.freq;const div=document.createElement('div');div.className='flex justify-between items-center bg-gray-50 rounded p-2';div.innerHTML=`<span>${h.name} (${dw}/${h.freq})</span><button class='${dis?'btnDisabled':'bg-emerald-500 text-white px-2 py-1 rounded'}' ${dis?'disabled':''} onclick='markHabit(${i})'><i data-lucide='${dt?'check':'circle'}'></i></button>`;wrap.appendChild(div);});lucide.createIcons();}
 
-/************ MEASUREMENTS *************/
-function saveMeasurements(){
-  const weight=parseFloat($("mWeight").value);
-  if(!weight) return alert("Gewicht eingeben");
-  const measurement={date:selectedDate,weight,waist:parseFloat($("mWaist").value)||null,thigh:parseFloat($("mThigh").value)||null,calf:parseFloat($("mCalf").value)||null,chest:parseFloat($("mChest").value)||null};
-  profile.measurements.push(measurement);
-  const prev=profile.measurements.at(-2);
-  if(prev){
-    const kgLoss=prev.weight-weight;
-    const cmLoss=(prev.waist||0)-(measurement.waist||prev.waist||0);
-    const pts=Math.max(0,kgLoss*5)+Math.max(0,cmLoss*2);
-    profile.points+=pts;
-    profile.pointsLog[selectedDate]=(profile.pointsLog[selectedDate]||0)+pts;
-  }
-  saveProfileData(profile);
-  $("mWeight").value=$("mWaist").value=$("mThigh").value=$("mCalf").value=$("mChest").value="";
-  updateStats();drawDailyOverview();drawWeightChart();drawSummaryCards();alert("Maße gespeichert");
-}
+/************** MEASUREMENTS **************/
+function saveMeasurement(){const w=parseFloat($("mWeight").value);if(!w)return alert('Gewicht eingeben');const m={date:selectedDate,weight:w,waist:parseFloat($("mWaist").value)||null,thigh:parseFloat($("mThigh").value)||null,calf:parseFloat($("mCalf").value)||null,chest:parseFloat($("mChest").value)||null};profile.measurements.push(m);const prev=profile.measurements.at(-2);if(prev){const kg=prev.weight-w;const cm=(prev.waist||0)-(m.waist||prev.waist||0);const pts=Math.max(0,kg*5)+Math.max(0,cm*2);profile.points+=pts;profile.pointsLog[selectedDate]=(profile.pointsLog[selectedDate]||0)+pts;}saveProfile(profile);['mWeight','mWaist','mThigh','mCalf','mChest'].forEach(id=>$(id).value='');updateStats();drawDaily();drawWeightChart();drawSummary();alert('Maße gespeichert');}
 
-/************ DAILY OVERVIEW *************/
-function drawDailyOverview(){
-  const dates=new Set([...Object.keys(profile.journal),...Object.keys(profile.habitLog),...profile.measurements.map(m=>m.date)]);
-  const sorted=[...dates].sort((a,b)=>b.localeCompare(a));
-  const cont=$("dailyContainer"); cont.innerHTML="";
-  sorted.forEach(d=>{
-    const j=profile.journal[d]||"-";
-    const habits=profile.habitLog[d]?profile.habitLog[d].join(', '):'-';
-    const m=profile.measurements.find(x=>x.date===d);
-    const w=m?m.weight+' kg':'-';
-    const pts=profile.pointsLog[d]||0;
-    const card=document.createElement('div'); card.className='card space-y-1';
-    card.innerHTML=`<div class='flex justify-between items-center'><h4 class='font-semibold'>${d}</h4><span class='font-bold'>${pts} ★</span></div><p><i data-lucide='book'></i> ${j}</p><p><i data-lucide='check-square'></i> ${habits}</p><p><i data-lucide='scales'></i> ${w}</p>`;
-    cont.appendChild(card);
-  });
-  lucide.createIcons();
-}
+/************** DAILY & SUMMARY **************/
+function drawDaily(){const all=new Set([...Object.keys(profile.journal),...Object.keys(profile.habitLog),...profile.measurements.map(m=>m.date)]);const list=[...all].sort((a,b)=>b.localeCompare(a));const cont=$("dailyContainer");cont.innerHTML='';list.forEach(d=>{const j=profile.journal[d]||'-',hs=profile.habitLog[d]?.join(', ')||'-',m=profile.measurements.find(x=>x.date===d),w=m?m.weight+' kg':'-',p=profile.pointsLog[d]||0;const c=document.createElement('div');c.className='card space-y-1';c.innerHTML=`<div class='flex justify-between items-center'><h4 class='font-semibold'>${d}</h4><span class='font-bold'>${p} ★</span></div><p><i data-lucide='book'></i> ${j}</p><p><i data-lucide='check-square'></i> ${hs}</p><p><i data-lucide='scales'></i> ${w}</p>`;cont.appendChild(c);});lucide.createIcons();}
+function drawSummary(){const cont=$("summaryContainer");cont.innerHTML='';const weeks=Math.max(1,(toDate(selectedDate)-toDate(profile.start))/(1000*60*60*24*7));const curr=profile.measurements.at(-1)?.weight||profile.startWeight;const lost=profile.startWeight-curr;const prog=((lost)/(profile.startWeight-profile.goalWeight)*100).toFixed(0);const avg=(profile.points/weeks).toFixed(1);const hw=profile.habits.reduce((a,h)=>a+doneThisWeek(h.name),0);const exp=profile.habits.reduce((a,h)=>a+h.freq,0)||1;const hp=Math.min(100,(hw/exp*100)).toFixed(0);const items=[{i:'activity',t:'Gewichtsverlust',v:`${lost.toFixed(1)} kg`},{i:'target',t:'Fortschritt',v:`${prog}%`},{i:'star',t:'Punkte',v:profile.points},{i:'award',t:'Ø Punkte/Woche',v:avg},{i:'check-circle',t:'Habits diese Woche',v:`${hp}%`}];items.forEach(c=>{const d=document.createElement('div');d.className='card';d.innerHTML=`<div class='flex items-center gap-2 mb-1'><i data-lucide='${c.i}'></i><span class='font-semibold'>${c.t}</span></div><p class='text-2xl font-bold'>${c.v}</p>`;cont.appendChild(d);});lucide.createIcons();}
 
-/************ CHARTS *************/
-function drawWeightChart(){
-  const ctx=$("weightChart"); if(!ctx) return;
-  if(weightChart) weightChart.destroy();
-  if(profile.measurements.length===0){ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height);return;}
-  weightChart=new Chart(ctx,{type:'line',data:{labels:profile.measurements.map(m=>m.date),datasets:[{label:'Gewicht (kg)',data:profile.measurements.map(m=>m.weight),borderWidth:2,fill:false}]},options:{responsive:true,plugins:{legend:{display:false}}}});
-}
-function drawPointsChart(){
-  const ctx=$("pointsChart"); if(!ctx) return;
-  if(pointsChart) pointsChart.destroy();
-  const labels=Object.keys(profile.pointsLog).sort();
-  pointsChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Punkte/Tag',data:labels.map(d=>profile.pointsLog[d]),borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}}}});
-}
-
-/************ SUMMARY CARDS *************/
-function drawSummaryCards(){
-  const cont=$("summaryContainer"); cont.innerHTML="";
-  const now=selectedDate, weeks=Math.max(1,(new Date(now)-new Date(profile.start))/(1000*60*60*24*7));
-  const currentW=profile.measurements.at(-1)?profile.measurements.at(-1).weight:profile.startWeight;
-  const weightLost=profile.startWeight-currentW;
-  const progressPct=((weightLost)/(profile.startWeight-profile.goalWeight)*100).toFixed(0);
-  const avgPts=(profile.points/weeks).toFixed(1);
-  const doneHabitsTotal=profile.habits.reduce((a,h)=>a+doneCountThisWeek(h.name),0);
-  const expected=profile.habits.reduce((a,h)=>a+h.freq,0)||1;
-  const habitPct=Math.min(100,(doneHabitsTotal/expected*100)).toFixed(0);
-  const cards=[{icon:'activity',title:'Gewichtsverlust',val:`${weightLost.toFixed(1)} kg`},{icon:'target',title:'Fortschritt',val:`${progressPct}%`},{icon:'star',title:'Punkte Gesamt',val:profile.points},{icon:'award',title:'Ø Punkte/Woche',val:avgPts},{icon:'check-circle',title:'Habits diese Woche',val:`${habitPct}%`}];
-  cards.forEach(c=>{const div=document.createElement('div');div.className='card flex flex-col gap-1';div.innerHTML=`<div class='flex items-center gap-2'><i data-lucide='${c.icon}'></i><span class='font-semibold'>${c.title}</span></div><p class='text-2xl font-bold'>${c.val}</p>`;cont.appendChild(div);});
-  lucide.createIcons();
-}
-</script>
-</body>
-</html>
+/************** CHARTS **************/
+function drawWeightChart(){const ctx=$("weightChart");if(!ctx)return;if(weightChart)weightChart.destroy();if(profile.measurements.length===0){ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height);return;}weightChart=new Chart(ctx,{type:'line',data:{labels:profile.measurements.map(m=>m.date),datasets:[{label:'Gewicht (kg)',data:profile.measurements.map(m=>m.weight),borderWidth:2,fill:false}]},options:{responsive:true,plugins:{legend:{display:false}}}});} 
+function drawPointsChart(){const ctx=$("points
