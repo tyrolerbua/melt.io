@@ -1508,65 +1508,7 @@
         
         // Create weekly habit statistics
         function createWeeklyStats() {
-            const today = new Date();
-            const weekStart = new Date(today);
-            weekStart.setDate(today.getDate() - today.getDay() + appData.settings.weekStart);
-            
-            const weekData = {};
-            appData.habits.forEach(habit => {
-                weekData[habit.id] = 0;
-            });
-            
-            // Count completed habits for current week
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(weekStart);
-                date.setDate(date.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
-                
-                if (appData.dailyData[dateStr] && appData.dailyData[dateStr].habits) {
-                    Object.keys(appData.dailyData[dateStr].habits).forEach(habitId => {
-                        if (appData.dailyData[dateStr].habits[habitId]) {
-                            weekData[habitId] = (weekData[habitId] || 0) + 1;
-                        }
-                    });
-                }
-            }
-            
-            // Display weekly stats
-            const statsContainer = document.getElementById('weeklyStats');
-            if (!statsContainer) {
-                const container = document.createElement('div');
-                container.id = 'weeklyStats';
-                container.className = 'form-section';
-                container.innerHTML = '<h3>Wochenstatistik</h3><div id="weeklyStatsContent"></div>';
-                
-                const habitSection = document.querySelector('#dashboard .form-section:last-child');
-                habitSection.parentNode.insertBefore(container, habitSection);
-            }
-            
-            const content = document.getElementById('weeklyStatsContent') || document.getElementById('weeklyStats').querySelector('div');
-            content.innerHTML = `
-                <div class="habit-grid">
-                    ${appData.habits.map(habit => {
-                        const completed = weekData[habit.id] || 0;
-                        const target = habit.frequency === 'daily' ? 7 : habit.target;
-                        const percentage = (completed / target) * 100;
-                        const isAchieved = completed >= target;
-                        
-                        return `
-                            <div class="stat-card" style="background: ${isAchieved ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #f3f4f6, white)'}; color: ${isAchieved ? 'white' : 'inherit'}">
-                                <div class="habit-icon" style="font-size: 40px; margin-bottom: 10px;">${habit.icon}</div>
-                                <div style="font-weight: bold; margin-bottom: 5px;">${habit.name}</div>
-                                <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">${completed}/${target}</div>
-                                <div class="progress-bar" style="background: ${isAchieved ? 'rgba(255,255,255,0.3)' : 'var(--light)'}">
-                                    <div class="progress-fill" style="width: ${Math.min(100, percentage)}%; background: ${isAchieved ? 'white' : habit.color}"></div>
-                                </div>
-                                <div style="font-size: 12px; margin-top: 5px;">${percentage.toFixed(0)}% erreicht</div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
+            // Stats are now integrated into the habit chart
         }
         // Update daily habit table
         function updateDailyHabitTable() {
