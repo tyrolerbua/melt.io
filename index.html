@@ -706,7 +706,6 @@
   		measurementId: "G-414T5Q6H8X"
 	};
 
-
         // Firebase initialisieren (nur wenn Konfiguration vorhanden)
         let db = null;
         let userId = null;
@@ -1052,6 +1051,18 @@
                 `;
                 container.appendChild(div);
             });
+        }
+
+        // Empty function for compatibility (not used anymore but might be called)
+        function updateHabitsDisplay() {
+            // This function is no longer needed but kept for compatibility
+            console.log('updateHabitsDisplay called - no longer used');
+        }
+
+        // Safety function to prevent errors
+        function updateHabitsTracker() {
+            // This function is no longer needed but kept to prevent errors
+            console.log('updateHabitsTracker called - replaced by updateHabitsDailyTracker');
         }
 
         function editHabitFromSettings(index) {
