@@ -1,490 +1,252 @@
-/*
-  Gewichts‑Tracker‑App
-  --------------------
-  Innovative, einseitige React‑Anwendung (SPA), die komplett im Browser läuft und
-  LocalStorage nutzt, um Daten dauerhaft zu sichern.  
-  Benötigte Abhängigkeiten (über z. B. Vite + Tailwind + shadcn/ui):
-    - react, react-dom
-    - tailwindcss
-    - @radix-ui/react-icons  (optional für Icons)
-    - recharts               (für Diagramme)
-    - shadcn/ui              (Card, Button, Input, Textarea, Tabs)
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Einfacher Gewichts-Tracker</title>
 
-  Hinweise:
-    * Alle Beschriftungen sind Deutsch.
-    * Datenstruktur wird automatisch migriert, falls neue Felder hinzukommen.
-    * Die App besteht aus drei "Masken": Dashboard, Eingabe, Einstellungen.
-*/
+<!-- Mini-Design -->
+<style>
+  :root{--bg:#f3f4f6;--card:#fff;--accent:#2563eb}
+  *{box-sizing:border-box;font-family:system-ui,Arial}
+  body{margin:0;background:var(--bg);color:#111}
+  header{background:var(--card);padding:1rem;display:flex;gap:.5rem;position:sticky;top:0}
+  header button{padding:.5rem 1rem;border:1px solid var(--accent);background:none;border-radius:.5rem;cursor:pointer}
+  header button.active{background:var(--accent);color:#fff}
+  main{padding:1rem;max-width:900px;margin:auto}
+  section{display:none}
+  section.active{display:block}
+  .card{background:var(--card);padding:1rem;margin-bottom:1rem;border-radius:.75rem;box-shadow:0 1px 4px #0001}
+  input,textarea,select{width:100%;padding:.5rem;border:1px solid #ccc;border-radius:.5rem}
+  label{font-size:.9rem;margin:.5rem 0 .25rem;display:block}
+  .flex{display:flex;gap:.5rem;flex-wrap:wrap}
+  .habitBtn{padding:.25rem .75rem;border:1px solid var(--accent);border-radius:.5rem;background:none;cursor:pointer;font-size:.8rem}
+  .habitBtn.active{background:var(--accent);color:#fff}
+  canvas{max-width:100%}
+</style>
+<!-- Chart.js für das Gewichtsdiagramm -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<header>
+  <button data-view="dash" class="active">Dashboard</button>
+  <button data-view="entry">Eingabe</button>
+  <button data-view="settings">Einstellungen</button>
+</header>
 
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+<main>
+  <!-- Dashboard -->
+  <section id="dash" class="active">
+    <div class="card" id="summary"></div>
+    <div class="card"><canvas id="weightChart" height="200"></canvas></div>
+    <div class="card" id="habitStats"></div>
+    <div class="card" id="diaryList"></div>
+  </section>
 
-const STORAGE_KEY = "gewichtstracker_v1";
+  <!-- Eingabe -->
+  <section id="entry">
+    <div class="card">
+      <label>Datum
+        <input type="date" id="dateInput">
+      </label>
 
-// ────────────────────────────────────────────────────────────────────────────────
-// Hilfsfunktionen
-// ────────────────────────────────────────────────────────────────────────────────
-const loadState = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error("Fehler beim Laden von LocalStorage", e);
-    return null;
+      <label>Gewicht (kg)
+        <input type="number" step="0.1" id="weightInput">
+      </label>
+
+      <label>Gewohnheiten</label>
+      <div id="habitChoices" class="flex"></div>
+
+      <label>Tagebuch
+        <textarea rows="4" id="diaryInput"></textarea>
+      </label>
+
+      <button id="saveEntry" style="margin-top:.5rem;padding:.5rem 1rem;background:var(--accent);color:#fff;border:none;border-radius:.5rem;cursor:pointer">Speichern</button>
+    </div>
+  </section>
+
+  <!-- Einstellungen -->
+  <section id="settings">
+    <div class="card">
+      <label>Startgewicht (kg)
+        <input type="number" step="0.1" id="startWeight">
+      </label>
+      <label>Zielgewicht (kg)
+        <input type="number" step="0.1" id="targetWeight">
+      </label>
+      <label>Fasten-Start
+        <input type="date" id="fastStart">
+      </label>
+      <label>Fasten-Ende
+        <input type="date" id="fastEnd">
+      </label>
+    </div>
+
+    <div class="card">
+      <h3>Gewohnheiten</h3>
+      <div id="habitList"></div>
+      <div class="flex" style="margin-top:.5rem">
+        <input placeholder="Neue Gewohnheit" id="habitName">
+        <select id="habitFreq">
+          ${[...Array(7)].map((_,i)=>`<option value="${i+1}">${i+1}×/Woche</option>`).join('')}
+        </select>
+        <button id="addHabit">Hinzufügen</button>
+      </div>
+    </div>
+
+    <button id="saveSettings" style="padding:.5rem 1rem;background:var(--accent);color:#fff;border:none;border-radius:.5rem;cursor:pointer">Einstellungen speichern</button>
+  </section>
+</main>
+
+<script>
+/*--------------- Datenhaltung ---------------*/
+const LS_KEY = 'simpleTracker';
+function load(){return JSON.parse(localStorage.getItem(LS_KEY)||'{}')}
+function save(data){localStorage.setItem(LS_KEY,JSON.stringify(data))}
+let data = load();
+
+/* Default-Struktur */
+data.settings ??= {startWeight:0,targetWeight:0,fastStart:null,fastEnd:null,habits:[]};
+data.weights  ??= [];   // [{date,kg}]
+data.hLogs    ??= [];   // [{date,habitId}]
+data.diary    ??= [];   // [{date,text}]
+save(data);
+
+/*--------------- Element-Shortcuts ---------------*/
+const $ = sel=>document.querySelector(sel);
+const $$ = sel=>document.querySelectorAll(sel);
+
+/*--------------- View-Umschaltung ---------------*/
+$$('header button').forEach(btn=>{
+  btn.onclick=()=>{show(btn.dataset.view)};
+});
+function show(view){
+  $$('header button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  $$('main section').forEach(s=>s.classList.toggle('active',s.id===view));
+  if(view==='dash') renderDash();
+  if(view==='entry') initEntry();
+  if(view==='settings') initSettings();
+}
+
+/*--------------- Einstellungen ---------------*/
+function initSettings(){
+  $('#startWeight').value = data.settings.startWeight||'';
+  $('#targetWeight').value = data.settings.targetWeight||'';
+  $('#fastStart').value    = data.settings.fastStart||'';
+  $('#fastEnd').value      = data.settings.fastEnd||'';
+  renderHabitList();
+}
+$('#addHabit').onclick=()=>{
+  const name=$('#habitName').value.trim();
+  const perWeek=+$('#habitFreq').value;
+  if(!name) return;
+  data.settings.habits.push({id:Date.now().toString(36),name,perWeek});
+  $('#habitName').value='';
+  renderHabitList();
+};
+function renderHabitList(){
+  const box=$('#habitList'); box.innerHTML='';
+  data.settings.habits.forEach(h=>{
+    const div=document.createElement('div');
+    div.className='flex'; div.style.cssText='justify-content:space-between;margin:.25rem 0';
+    div.innerHTML=`<span>${h.name} (${h.perWeek}×)</span><button data-id="${h.id}">X</button>`;
+    box.appendChild(div);
+  });
+  box.querySelectorAll('button').forEach(b=>{
+    b.onclick=()=>{data.settings.habits=data.settings.habits.filter(h=>h.id!==b.dataset.id);renderHabitList();}
+  });
+}
+$('#saveSettings').onclick=()=>{
+  Object.assign(data.settings,{
+    startWeight:+$('#startWeight').value||0,
+    targetWeight:+$('#targetWeight').value||0,
+    fastStart:$('#fastStart').value||null,
+    fastEnd:$('#fastEnd').value||null
+  });
+  save(data); alert('Gespeichert'); show('dash');
+};
+
+/*--------------- Eingabe ---------------*/
+function initEntry(){
+  const d=new Date().toISOString().substr(0,10);
+  $('#dateInput').value=d;
+  $('#weightInput').value='';
+  $('#diaryInput').value='';
+  renderHabitChoices([]);
+}
+function renderHabitChoices(selected){
+  const box=$('#habitChoices'); box.innerHTML='';
+  data.settings.habits.forEach(h=>{
+    const btn=document.createElement('button');
+    btn.className='habitBtn'+(selected.includes(h.id)?' active':'');
+    btn.textContent=h.name;
+    btn.onclick=()=>{btn.classList.toggle('active');};
+    btn.dataset.id=h.id;
+    box.appendChild(btn);
+  });
+}
+$('#dateInput').onchange=e=>{
+  const date=e.target.value;
+  const w=data.weights.find(w=>w.date===date);
+  $('#weightInput').value=w?.kg||'';
+  const sel=data.hLogs.filter(l=>l.date===date).map(l=>l.habitId);
+  renderHabitChoices(sel);
+  const dEntry=data.diary.find(d=>d.date===date);
+  $('#diaryInput').value=dEntry?.text||'';
+};
+$('#saveEntry').onclick=()=>{
+  const date=$('#dateInput').value;
+  const kg=+$('#weightInput').value;
+  if(kg){const idx=data.weights.findIndex(w=>w.date===date);
+    idx>=0?data.weights[idx].kg=kg:data.weights.push({date,kg});
   }
+  const habitIds=[...$('#habitChoices').querySelectorAll('.active')].map(b=>b.dataset.id);
+  data.hLogs = data.hLogs.filter(l=>l.date!==date).concat(habitIds.map(id=>({date,habitId:id})));
+  const text=$('#diaryInput').value.trim();
+  const dIdx=data.diary.findIndex(d=>d.date===date);
+  if(text){dIdx>=0?data.diary[dIdx].text=text:data.diary.push({date,text});}
+  else if(dIdx>=0){data.diary.splice(dIdx,1);}
+  save(data); alert('Eintrag gespeichert'); show('dash');
 };
 
-const saveState = (state) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.error("Fehler beim Speichern in LocalStorage", e);
-  }
-};
-
-const getISODate = (d = new Date()) => d.toISOString().substring(0, 10);
-
-const weeksBetween = (start, end) => {
-  const ms = new Date(end) - new Date(start);
-  return ms / (1000 * 60 * 60 * 24 * 7);
-};
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Haupt‑App
-// ────────────────────────────────────────────────────────────────────────────────
-export default function App() {
-  // ───────── State
-  const [view, setView] = useState("dashboard");
-  const [state, setState] = useState(() =>
-    loadState() || {
-      settings: {
-        startDate: getISODate(),
-        targetDate: getISODate(),
-        startWeight: 0,
-        targetWeight: 0,
-        habits: [], // { id, name, perWeek }
-      },
-      weights: [], // { date, weight }
-      habitLogs: [], // { date, habitId }
-      diary: [], // { date, text }
-    }
-  );
-
-  // ───────── Persistenz
-  useEffect(() => {
-    saveState(state);
-  }, [state]);
-
-  // ───────── Abgeleitete Werte
-  const currentWeight = useMemo(() => {
-    if (state.weights.length === 0) return 0;
-    return state.weights[state.weights.length - 1].weight;
-  }, [state.weights]);
-
-  const weightProgressPct = useMemo(() => {
-    const { startWeight, targetWeight } = state.settings;
-    if (!startWeight || !targetWeight) return 0;
-    return (
-      ((startWeight - currentWeight) / (startWeight - targetWeight)) * 100
-    ).toFixed(1);
-  }, [state.settings, currentWeight]);
-
-  const avgWeeklyLoss = useMemo(() => {
-    const { startDate } = state.settings;
-    if (state.weights.length < 2) return 0;
-    const weeks = weeksBetween(startDate, new Date());
-    if (weeks <= 0) return 0;
-    const loss = state.settings.startWeight - currentWeight;
-    return (loss / weeks).toFixed(2);
-  }, [state, currentWeight]);
-
-  const habitCompletion = useMemo(() => {
-    const map = {};
-    state.settings.habits.forEach((h) => {
-      map[h.id] = { ...h, done: 0 };
-    });
-    state.habitLogs.forEach((log) => {
-      if (map[log.habitId]) map[log.habitId].done += 1;
-    });
-    return map;
-  }, [state]);
-
-  // ───────── Handler
-  const addOrUpdateWeight = (date, weight) => {
-    setState((s) => {
-      const existingIdx = s.weights.findIndex((w) => w.date === date);
-      const weights = [...s.weights];
-      if (existingIdx >= 0) {
-        weights[existingIdx].weight = weight;
-      } else {
-        weights.push({ date, weight });
-        weights.sort((a, b) => a.date.localeCompare(b.date));
-      }
-      return { ...s, weights };
-    });
-  };
-
-  const addHabitLog = (date, habitIds) => {
-    setState((s) => {
-      // entferne alte Logs für den Tag
-      const others = s.habitLogs.filter((l) => l.date !== date);
-      const newLogs = habitIds.map((id) => ({ date, habitId: id }));
-      return { ...s, habitLogs: [...others, ...newLogs] };
-    });
-  };
-
-  const saveDiary = (date, text) => {
-    setState((s) => {
-      const idx = s.diary.findIndex((d) => d.date === date);
-      const diary = [...s.diary];
-      if (idx >= 0) diary[idx].text = text;
-      else diary.push({ date, text });
-      diary.sort((a, b) => b.date.localeCompare(a.date));
-      return { ...s, diary };
-    });
-  };
-
-  const updateSettings = (newSettings) => {
-    setState((s) => ({ ...s, settings: { ...s.settings, ...newSettings } }));
-  };
-
-  // ───────── Komponenten‑Auswahl
-  const renderView = () => {
-    switch (view) {
-      case "eingabe":
-        return (
-          <InputMask
-            state={state}
-            addOrUpdateWeight={addOrUpdateWeight}
-            addHabitLog={addHabitLog}
-            saveDiary={saveDiary}
-          />
-        );
-      case "einstellungen":
-        return <Settings state={state} updateSettings={updateSettings} />;
-      default:
-        return <Dashboard state={state} weightProgressPct={weightProgressPct} avgWeeklyLoss={avgWeeklyLoss} habitCompletion={habitCompletion} />;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
-      <header className="bg-white shadow sticky top-0 z-10">
-        <nav className="container mx-auto flex justify-between p-4">
-          <h1 className="text-xl font-bold">Gewichts‑Tracker</h1>
-          <div className="space-x-4">
-            <Button variant={view === "dashboard" ? "default" : "ghost"} onClick={() => setView("dashboard")}>Dashboard</Button>
-            <Button variant={view === "eingabe" ? "default" : "ghost"} onClick={() => setView("eingabe")}>Eingabe</Button>
-            <Button variant={view === "einstellungen" ? "default" : "ghost"} onClick={() => setView("einstellungen")}>Einstellungen</Button>
-          </div>
-        </nav>
-      </header>
-      <main className="container mx-auto p-4">{renderView()}</main>
+/*--------------- Dashboard ---------------*/
+let chart;
+function renderDash(){
+  // Zusammenfassung
+  const curr=data.weights.sort((a,b)=>a.date.localeCompare(b.date)).at(-1);
+  const diff=data.settings.startWeight-curr?.kg||0;
+  const total=data.settings.startWeight-data.settings.targetWeight||0;
+  const pct=total?((diff/total)*100).toFixed(1):0;
+  $('#summary').innerHTML=`
+    <h3>Übersicht</h3>
+    <p>Startgewicht: <b>${data.settings.startWeight||'–'} kg</b><br>
+       Zielgewicht: <b>${data.settings.targetWeight||'–'} kg</b><br>
+       Aktuell: <b>${curr?.kg||'–'} kg</b></p>
+    <div style="background:#ddd;border-radius:.5rem;overflow:hidden;height:1rem">
+      <div style="width:${pct}%;background:var(--accent)"></div>
     </div>
-  );
+    <small>${pct}% vom Ziel erreicht</small>
+  `;
+  // Diagramm
+  const ctx=document.getElementById('weightChart').getContext('2d');
+  chart?.destroy();
+  chart=new Chart(ctx,{type:'line',
+    data:{labels:data.weights.map(w=>w.date),datasets:[{label:'Gewicht',data:data.weights.map(w=>w.kg),fill:false,borderWidth:2}]},
+    options:{plugins:{legend:{display:false}}}
+  });
+  // Habit-Auswertung
+  const weeks=Math.max(1,Math.ceil((Date.now()-new Date(data.settings.fastStart||Date.now()))/604800000));
+  const stat=data.settings.habits.map(h=>{
+    const done=data.hLogs.filter(l=>l.habitId===h.id).length;
+    return `<li>${h.name}: ${done}/${h.perWeek*weeks}</li>`;
+  }).join('');
+  $('#habitStats').innerHTML='<h3>Gewohnheiten (erledigt / Soll)</h3><ul>'+stat+'</ul>';
+  // Tagebuchliste
+  $('#diaryList').innerHTML='<h3>Tagebuch (letzte 5)</h3>'+data.diary.slice(-5).reverse().map(d=>`<p><b>${d.date}</b><br>${d.text}</p>`).join('')||'–';
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
-// Dashboard
-// ────────────────────────────────────────────────────────────────────────────────
-function Dashboard({ state, weightProgressPct, avgWeeklyLoss, habitCompletion }) {
-  const { settings, weights, diary } = state;
-  const currentWeight = weights.length ? weights[weights.length - 1].weight : 0;
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Übersichtskarten */}
-      <Card className="lg:col-span-3">
-        <CardHeader>
-          <CardTitle>Fastenzeitraum</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div>
-            <p className="text-sm text-gray-500">Start</p>
-            <p className="text-lg font-semibold">{settings.startDate}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Ziel</p>
-            <p className="text-lg font-semibold">{settings.targetDate}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Startgewicht</p>
-            <p className="text-lg font-semibold">{settings.startWeight} kg</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Zielgewicht</p>
-            <p className="text-lg font-semibold">{settings.targetWeight} kg</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Aktuelles Gewicht</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center text-3xl font-bold">
-          {currentWeight ? `${currentWeight} kg` : "–"}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Fortschritt</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-5xl font-bold">{weightProgressPct}%</p>
-          <p className="text-sm text-gray-500 mt-1">vom Ziel erreicht</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Ø Gewichtsverlust / Woche</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center text-3xl font-bold">
-          {avgWeeklyLoss} kg
-        </CardContent>
-      </Card>
-
-      {/* Gewichtsverlauf */}
-      <Card className="lg:col-span-3">
-        <CardHeader>
-          <CardTitle>Gewichtsverlauf</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {weights.length ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weights} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
-                <Tooltip formatter={(v) => `${v} kg`} />
-                <Line type="monotone" dataKey="weight" strokeWidth={3} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-center text-gray-500">Noch keine Gewichts‑Einträge.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Habit‑Auswertung */}
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Gewohnheiten</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {state.settings.habits.length ? (
-            <ul className="space-y-2">
-              {Object.values(habitCompletion).map((h) => (
-                <li key={h.id} className="flex justify-between">
-                  <span>{h.name}</span>
-                  <span>
-                    {h.done}/{h.perWeek * weeksBetween(state.settings.startDate, new Date()) | 0}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500">Keine Gewohnheiten definiert.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Tagebuch Übersicht */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tagebuch</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 max-h-72 overflow-y-auto">
-          {diary.length ? (
-            diary.map((d) => (
-              <div key={d.date}>
-                <p className="text-sm font-semibold">{d.date}</p>
-                <p className="text-sm text-gray-700 line-clamp-2">{d.text}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">Keine Einträge.</p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Eingabe‑Maske
-// ────────────────────────────────────────────────────────────────────────────────
-function InputMask({ state, addOrUpdateWeight, addHabitLog, saveDiary }) {
-  const today = getISODate();
-  const [date, setDate] = useState(today);
-  const [weight, setWeight] = useState("");
-  const [selectedHabits, setSelectedHabits] = useState([]);
-  const [text, setText] = useState("");
-
-  useEffect(() => {
-    // Lade bestehende Daten für das Datum
-    const w = state.weights.find((w) => w.date === date);
-    setWeight(w ? w.weight : "");
-    const logs = state.habitLogs.filter((l) => l.date === date).map((l) => l.habitId);
-    setSelectedHabits(logs);
-    const d = state.diary.find((d) => d.date === date);
-    setText(d ? d.text : "");
-  }, [date, state]);
-
-  const toggleHabit = (id) => {
-    setSelectedHabits((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  };
-
-  const handleSave = () => {
-    if (weight) addOrUpdateWeight(date, parseFloat(weight));
-    addHabitLog(date, selectedHabits);
-    if (text.trim()) saveDiary(date, text.trim());
-    alert("Eintrag gespeichert!");
-  };
-
-  return (
-    <Card className="max-w-xl mx-auto">
-      <CardHeader>
-        <CardTitle>Neuer Tages‑Eintrag</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Datum</label>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Gewicht (kg)</label>
-          <Input type="number" step="0.1" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium">Gewohnheiten</p>
-          <div className="flex flex-wrap gap-2">
-            {state.settings.habits.map((h) => (
-              <Button
-                key={h.id}
-                variant={selectedHabits.includes(h.id) ? "default" : "outline"}
-                onClick={() => toggleHabit(h.id)}
-              >
-                {h.name}
-              </Button>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Tagebuch</label>
-          <Textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} />
-        </div>
-        <Button className="w-full" onClick={handleSave}>
-          Speichern
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Einstellungen
-// ────────────────────────────────────────────────────────────────────────────────
-function Settings({ state, updateSettings }) {
-  const s = state.settings;
-  const [local, setLocal] = useState(s);
-  const [newHabitName, setNewHabitName] = useState("");
-  const [newHabitPerWeek, setNewHabitPerWeek] = useState(3);
-
-  const handleSave = () => {
-    updateSettings(local);
-    alert("Einstellungen gespeichert!");
-  };
-
-  const addHabit = () => {
-    if (!newHabitName.trim()) return;
-    setLocal((l) => ({
-      ...l,
-      habits: [
-        ...l.habits,
-        {
-          id: Date.now().toString(36),
-          name: newHabitName.trim(),
-          perWeek: newHabitPerWeek,
-        },
-      ],
-    }));
-    setNewHabitName("");
-  };
-
-  const deleteHabit = (id) => {
-    setLocal((l) => ({ ...l, habits: l.habits.filter((h) => h.id !== id) }));
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Gewicht & Zeitraum</CardTitle>
-        </CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Startgewicht (kg)</label>
-            <Input type="number" step="0.1" value={local.startWeight} onChange={(e) => setLocal({ ...local, startWeight: parseFloat(e.target.value) })} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Zielgewicht (kg)</label>
-            <Input type="number" step="0.1" value={local.targetWeight} onChange={(e) => setLocal({ ...local, targetWeight: parseFloat(e.target.value) })} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Fasten‑Start</label>
-            <Input type="date" value={local.startDate} onChange={(e) => setLocal({ ...local, startDate: e.target.value })} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Fasten‑Ende</label>
-            <Input type="date" value={local.targetDate} onChange={(e) => setLocal({ ...local, targetDate: e.target.value })} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Gewohnheiten</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input placeholder="Neue Gewohnheit" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
-            <Input type="number" min="1" max="7" className="w-20" value={newHabitPerWeek} onChange={(e) => setNewHabitPerWeek(parseInt(e.target.value) || 1)} />
-            <Button onClick={addHabit}>Hinzufügen</Button>
-          </div>
-          <ul className="space-y-2">
-            {local.habits.map((h) => (
-              <li key={h.id} className="flex justify-between items-center p-2 bg-gray-100 rounded-md">
-                <span>{h.name} ({h.perWeek}×/Woche)</span>
-                <Button size="sm" variant="destructive" onClick={() => deleteHabit(h.id)}>
-                  Entfernen
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-
-      <Button className="w-full" size="lg" onClick={handleSave}>
-        Einstellungen speichern
-      </Button>
-    </div>
-  );
-}
+/*--------------- Initial laden ---------------*/
+show('dash');
+</script>
+</body>
+</html>
