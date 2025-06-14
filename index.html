@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health-Tracker</title>
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -653,7 +656,7 @@
 
                         <!-- Ihre Gewohnheiten -->
                         <div>
-                            <h4 style="margin-bottom: 15px; color: #2c5f5f;">Ihre Gewohnheiten</h4>
+                            <h4 style="margin-bottom: 15px; color: #042630;">Ihre Gewohnheiten</h4>
                             <div id="habits-settings-table">
                                 <!-- Wird dynamisch gefüllt -->
                             </div>
@@ -673,10 +676,15 @@
                             <button class="btn-danger" onclick="resetAllData()">Alle Daten löschen</button>
                         </div>
                         <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
-                        <p style="font-size: 12px; color: #666; margin-top: 15px;">
-                            <strong>Hinweis:</strong> Ihre Daten werden automatisch im Browser gespeichert. 
-                            Mit Export/Import können Sie Backups erstellen oder Daten auf andere Geräte übertragen.
-                        </p>
+                        <div style="margin-top: 15px; padding: 15px; background: rgba(134, 185, 177, 0.1); border-radius: 8px;">
+                            <p style="font-size: 14px; color: #042630; margin: 0;">
+                                <strong>💾 Cloud-Speicherung:</strong> 
+                                <span id="storage-status">Status wird geladen...</span>
+                            </p>
+                            <p style="font-size: 12px; color: #666; margin: 5px 0 0 0;">
+                                Export/Import für Backups und Geräte-Transfer verwenden.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -684,7 +692,93 @@
     </div>
 
     <script>
-        // Data storage with localStorage persistence
+        // ⚠️ FIREBASE KONFIGURATION ERFORDERLICH ⚠️
+        // Ersetzen Sie diese Werte mit Ihren eigenen Firebase-Konfigurationsdaten
+        // Anleitung: https://firebase.google.com/docs/web/setup
+        
+        const firebaseConfig = {
+            // HIER IHRE FIREBASE KONFIGURATION EINTRAGEN:
+  		apiKey: "AIzaSyDgLo3neIRWlzXaXDZpjNmnp6olqh7Wz7g",
+  		authDomain: "mein-health-tracker.firebaseapp.com",
+  		projectId: "mein-health-tracker",
+  		storageBucket: "mein-health-tracker.firebasestorage.app",
+  		messagingSenderId: "296062748338",
+  		appId: "1:296062748338:web:6b17b73afe264001c72bab",
+  		measurementId: "G-414T5Q6H8X"
+        };
+
+        // Firebase initialisieren (nur wenn Konfiguration vorhanden)
+        let db = null;
+        let userId = null;
+        let isOnline = false;
+
+        function initializeFirebase() {
+            // Prüfen ob Firebase-Konfiguration vorhanden ist
+            if (!firebaseConfig.apiKey) {
+                console.warn('Firebase nicht konfiguriert - läuft im Demo-Modus');
+                showFirebaseSetupMessage();
+                return;
+            }
+
+            try {
+                // Firebase initialisieren
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                // Benutzer-ID generieren oder laden
+                userId = localStorage.getItem('healthTracker_userId') || generateUserId();
+                localStorage.setItem('healthTracker_userId', userId);
+                
+                isOnline = true;
+                console.log('Firebase erfolgreich initialisiert');
+                hideFirebaseSetupMessage();
+            } catch (error) {
+                console.error('Firebase Initialisierung fehlgeschlagen:', error);
+                showFirebaseSetupMessage();
+            }
+        }
+
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        }
+
+        function showFirebaseSetupMessage() {
+            const header = document.querySelector('.header-container');
+            const notice = document.createElement('div');
+            notice.id = 'firebase-notice';
+            notice.style.cssText = `
+                background: linear-gradient(45deg, #dc3545, #c82333);
+                color: white;
+                padding: 15px;
+                text-align: center;
+                margin-bottom: 10px;
+                border-radius: 8px;
+                font-weight: 600;
+            `;
+            notice.innerHTML = `
+                ⚠️ <strong>Firebase-Konfiguration erforderlich</strong><br>
+                <small>Die App läuft im Demo-Modus. Daten werden nicht gespeichert. 
+                Siehe Konsole für Setup-Anweisungen.</small>
+            `;
+            header.parentNode.insertBefore(notice, header.nextSibling);
+        }
+
+        function hideFirebaseSetupMessage() {
+            const notice = document.getElementById('firebase-notice');
+            if (notice) notice.remove();
+        }
+
+        function updateStorageStatus() {
+            const statusElement = document.getElementById('storage-status');
+            if (statusElement) {
+                statusElement.textContent = isOnline 
+                    ? 'Aktiv - Daten werden automatisch in der Cloud gespeichert'
+                    : 'Nicht konfiguriert - Läuft im Demo-Modus';
+                statusElement.style.color = isOnline ? '#28a745' : '#dc3545';
+            }
+        }
+
+        // Data storage with Firebase Cloud Firestore
         let appData = {
             settings: {
                 fastStart: '',
@@ -698,32 +792,50 @@
             habitChecks: {}
         };
 
-        // Load data from localStorage
-        function loadData() {
+        // Load data from Firestore
+        async function loadData() {
+            if (!isOnline) {
+                console.log('Offline-Modus: Keine Daten zu laden');
+                return;
+            }
+
             try {
-                const savedData = localStorage.getItem('healthTrackerData');
-                if (savedData) {
-                    const parsedData = JSON.parse(savedData);
-                    appData = { ...appData, ...parsedData };
+                const doc = await db.collection('users').doc(userId).get();
+                if (doc.exists) {
+                    const savedData = doc.data();
+                    appData = { ...appData, ...savedData };
+                    console.log('Daten erfolgreich von Firebase geladen');
+                } else {
+                    console.log('Noch keine Daten für diesen Benutzer vorhanden');
                 }
             } catch (error) {
-                console.warn('Fehler beim Laden der Daten:', error);
+                console.error('Fehler beim Laden der Daten:', error);
+                alert('Fehler beim Laden der Daten. Bitte versuchen Sie es später erneut.');
             }
         }
 
-        // Save data to localStorage
-        function saveData() {
+        // Save data to Firestore
+        async function saveData() {
+            if (!isOnline) {
+                console.log('Offline-Modus: Daten werden nicht gespeichert');
+                return;
+            }
+
             try {
-                localStorage.setItem('healthTrackerData', JSON.stringify(appData));
+                await db.collection('users').doc(userId).set({
+                    ...appData,
+                    lastUpdated: new Date().toISOString()
+                });
+                console.log('Daten erfolgreich in Firebase gespeichert');
             } catch (error) {
-                console.warn('Fehler beim Speichern der Daten:', error);
-                alert('Daten konnten nicht gespeichert werden. Möglicherweise ist der Browser-Speicher voll.');
+                console.error('Fehler beim Speichern der Daten:', error);
+                alert('Fehler beim Speichern der Daten. Bitte versuchen Sie es später erneut.');
             }
         }
 
-        // Auto-save function that can be called after any data change
-        function autoSave() {
-            saveData();
+        // Auto-save function
+        async function autoSave() {
+            await saveData();
         }
 
         // Initialize app
@@ -761,23 +873,35 @@
                 updateDashboard();
             } else if (sectionName === 'eingabe') {
                 updateHabitsDailyTracker();
+            } else if (sectionName === 'einstellung') {
+                loadSettingsForm();
+                updateStorageStatus();
             }
         }
 
+        // Load settings into form
+        function loadSettingsForm() {
+            const settings = appData.settings;
+            document.getElementById('settings-fast-start').value = settings.fastStart || '';
+            document.getElementById('settings-fast-end').value = settings.fastEnd || '';
+            document.getElementById('settings-start-weight').value = settings.startWeight || '';
+            document.getElementById('settings-target-weight').value = settings.targetWeight || '';
+        }
+
         // Settings
-        function saveSettings() {
+        async function saveSettings() {
             appData.settings.fastStart = document.getElementById('settings-fast-start').value;
             appData.settings.fastEnd = document.getElementById('settings-fast-end').value;
             appData.settings.startWeight = parseFloat(document.getElementById('settings-start-weight').value) || 0;
             appData.settings.targetWeight = parseFloat(document.getElementById('settings-target-weight').value) || 0;
             
-            autoSave();
+            await autoSave();
             alert('Einstellungen gespeichert!');
             updateDashboard();
         }
 
         // Weight management
-        function addWeight() {
+        async function addWeight() {
             const date = document.getElementById('weight-date').value;
             const weight = parseFloat(document.getElementById('weight-value').value);
             
@@ -798,26 +922,26 @@
             appData.weights.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             document.getElementById('weight-value').value = '';
-            autoSave();
+            await autoSave();
             updateWeightTable();
             updateDashboard();
         }
 
-        function editWeight(index) {
+        async function editWeight(index) {
             const entry = appData.weights[index];
             const newWeight = prompt('Neues Gewicht:', entry.weight);
             if (newWeight !== null && !isNaN(parseFloat(newWeight))) {
                 appData.weights[index].weight = parseFloat(newWeight);
-                autoSave();
+                await autoSave();
                 updateWeightTable();
                 updateDashboard();
             }
         }
 
-        function deleteWeight(index) {
+        async function deleteWeight(index) {
             if (confirm('Gewichtseintrag löschen?')) {
                 appData.weights.splice(index, 1);
-                autoSave();
+                await autoSave();
                 updateWeightTable();
                 updateDashboard();
             }
@@ -1101,7 +1225,8 @@
                 const dataToExport = {
                     ...appData,
                     exportDate: new Date().toISOString(),
-                    version: '1.0'
+                    version: '2.0',
+                    source: 'Health-Tracker-Firebase'
                 };
                 
                 const dataBlob = new Blob([JSON.stringify(dataToExport, null, 2)], {
@@ -1123,12 +1248,12 @@
             }
         }
 
-        function importData(event) {
+        async function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
                     
@@ -1147,9 +1272,10 @@
                             habitChecks: importedData.habitChecks || {}
                         };
                         
-                        autoSave();
+                        await autoSave();
                         
                         // Update all displays
+                        loadSettingsForm();
                         updateDashboard();
                         updateWeightTable();
                         updateDiaryDisplay();
@@ -1169,7 +1295,7 @@
             event.target.value = '';
         }
 
-        function resetAllData() {
+        async function resetAllData() {
             if (confirm('Sind Sie sicher, dass Sie ALLE Daten löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden!')) {
                 if (confirm('Letzte Warnung: Alle Einstellungen, Gewichtsdaten, Gewohnheiten und Tagebucheinträge werden unwiderruflich gelöscht!')) {
                     appData = {
@@ -1185,9 +1311,10 @@
                         habitChecks: {}
                     };
                     
-                    autoSave();
+                    await autoSave();
                     
                     // Update all displays
+                    loadSettingsForm();
                     updateDashboard();
                     updateWeightTable();
                     updateDiaryDisplay();
