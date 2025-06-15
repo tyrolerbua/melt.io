@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health-Tracker</title>
-    <!-- Firebase SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    <!-- Firebase SDK v8 (einfacher und stabiler) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         * {
             margin: 0;
@@ -27,7 +27,7 @@
             margin: 0 auto;
             background: white;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(4, 38, 48, 0.2);
             overflow: hidden;
         }
 
@@ -47,6 +47,26 @@
             color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             margin-bottom: 20px;
+        }
+
+        /* Status Notice */
+        .status-notice {
+            background: linear-gradient(45px, #dc3545, #c82333);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status-notice.show {
+            display: block;
+        }
+
+        .status-notice.success {
+            background: linear-gradient(45deg, #28a745, #20c997);
         }
 
         /* Navigation Buttons */
@@ -126,10 +146,10 @@
             font-size: 20px;
             font-weight: bold;
             text-align: center;
-            color: #2c5f5f;
+            color: #042630;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #4a9999;
+            border-bottom: 2px solid #86B9B1;
         }
 
         .card-content {
@@ -143,11 +163,11 @@
 
         .label {
             font-weight: 600;
-            color: #555;
+            color: #26343E;
         }
 
         .value {
-            color: #4a9999;
+            color: #4B7272;
             font-weight: bold;
         }
 
@@ -233,11 +253,6 @@
             box-shadow: 0 6px 20px rgba(75, 114, 114, 0.4);
         }
 
-        .btn-primary:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 8px rgba(75, 114, 114, 0.3);
-        }
-
         .btn-secondary {
             background: linear-gradient(45deg, #4B7272 0%, #26343E 100%);
             color: white;
@@ -254,12 +269,6 @@
         .btn-secondary:hover {
             background: linear-gradient(45deg, #042630 0%, #26343E 100%);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(4, 38, 48, 0.3);
-        }
-
-        .btn-secondary:active {
-            transform: translateY(0);
-            box-shadow: 0 1px 4px rgba(4, 38, 48, 0.2);
         }
 
         .btn-danger {
@@ -278,76 +287,10 @@
         .btn-danger:hover {
             background: linear-gradient(45deg, #c82333 0%, #a71e2a 100%);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
-        }
-
-        .btn-danger:active {
-            transform: translateY(0);
-            box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
         }
 
         /* Lists */
         .list-item {
-            background: #f0f9f9;
-            border: 1px solid #b8dede;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .list-content {
-            flex-grow: 1;
-        }
-
-        .list-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        /* Weight entries table */
-        .weight-table,
-        .habits-settings-table,
-        .habits-week-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        .weight-table th,
-        .weight-table td,
-        .habits-settings-table th,
-        .habits-settings-table td,
-        .habits-week-table th,
-        .habits-week-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #b8dede;
-            border-right: 1px solid #b8dede;
-        }
-
-        .weight-table th,
-        .habits-settings-table th,
-        .habits-week-table th {
-            background: #e8f5f5;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .habits-week-table td {
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        .habits-week-table td.habit-name {
-            text-align: left;
-            font-weight: 600;
-            background: #f0f9f9;
-        }
-
-        .habits-settings-item {
             background: linear-gradient(145deg, #CFD6D5, rgba(255, 255, 255, 0.9));
             border: 1px solid rgba(134, 185, 177, 0.3);
             border-radius: 8px;
@@ -360,35 +303,29 @@
             box-shadow: 0 2px 8px rgba(4, 38, 48, 0.05);
         }
 
-        .habits-settings-item:hover {
+        .list-item:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 15px rgba(4, 38, 48, 0.1);
         }
 
-        .habit-checkbox {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #86B9B1;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.9);
+        /* Tables */
+        .weight-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
 
-        .habit-checkbox.checked {
-            background: linear-gradient(45deg, #86B9B1, #4B7272);
-            color: white;
-            border-color: #4B7272;
-            box-shadow: 0 2px 8px rgba(134, 185, 177, 0.4);
+        .weight-table th,
+        .weight-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(134, 185, 177, 0.3);
         }
 
-        .habit-checkbox:hover {
-            background: rgba(134, 185, 177, 0.2);
-            border-color: #4B7272;
-            transform: scale(1.1);
+        .weight-table th {
+            background: linear-gradient(145deg, #86B9B1, #CFD6D5);
+            font-weight: 600;
+            color: #042630;
         }
 
         /* Responsive */
@@ -413,6 +350,9 @@
         <!-- Header -->
         <div class="header-container">
             <h1 class="header-title">Health-Tracker</h1>
+            <div id="status-notice" class="status-notice">
+                <span id="status-text">Status wird geladen...</span>
+            </div>
             <div class="nav-buttons">
                 <button class="pill-button active" onclick="showSection('dashboard')">Dashboard</button>
                 <button class="pill-button" onclick="showSection('eingabe')">Eingabe</button>
@@ -423,7 +363,6 @@
 
         <!-- Dashboard Section -->
         <div id="dashboard" class="content-section active">
-            <!-- Karten-Section 1: Original 3-Spalten Grid -->
             <div class="cards-section">
                 <!-- Karte 1: Fastenzeitraum -->
                 <div class="card">
@@ -464,13 +403,13 @@
                 </div>
             </div>
 
-            <!-- Karten-Section 2: Gewichtsverlauf Diagramm (1 Spalte, 100% Breite) -->
+            <!-- Gewichtsverlauf Diagramm -->
             <div class="cards-section-full" style="margin-top: 30px;">
                 <div class="card">
                     <h3 style="text-align: left;">Gewichtsverlauf</h3>
                     <div class="card-content">
                         <div id="weight-chart-container">
-                            <svg id="weight-chart" width="100%" height="300" style="border: 1px solid #e8f5f5; border-radius: 8px;">
+                            <svg id="weight-chart" width="100%" height="300" style="border: 1px solid rgba(134, 185, 177, 0.3); border-radius: 8px;">
                                 <!-- Chart will be generated by JavaScript -->
                             </svg>
                             <div class="chart-legend" style="margin-top: 15px; display: flex; justify-content: center; gap: 20px;">
@@ -491,23 +430,11 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Karten-Section 3: Gewohnheiten Wochenübersicht (1 Spalte, 100% Breite) -->
-            <div class="cards-section-full" style="margin-top: 30px;">
-                <div class="card">
-                    <h3 style="text-align: left;">Gewohnheiten</h3>
-                    <div class="card-content">
-                        <div id="habits-week-table-container">
-                            <!-- Wird dynamisch generiert -->
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Eingabe Section -->
         <div id="eingabe" class="content-section">
-            <!-- Karten-Section 1: Gewichtseingabe -->
+            <!-- Gewichtseingabe -->
             <div class="cards-section-full">
                 <div class="card">
                     <h3 style="text-align: left;">Gewicht eingeben</h3>
@@ -529,7 +456,7 @@
                 </div>
             </div>
 
-            <!-- Karten-Section 2: Gewichtseinträge anzeigen -->
+            <!-- Gewichtseinträge -->
             <div class="cards-section-full" style="margin-top: 30px;">
                 <div class="card">
                     <h3 style="text-align: left;">Gewichtseinträge</h3>
@@ -548,21 +475,11 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Karten-Section 3: Gewohnheiten abhaken -->
-            <div class="cards-section-full" style="margin-top: 30px;">
-                <div class="card">
-                    <h3 style="text-align: left;">Gewohnheiten abhaken</h3>
-                    <div class="card-content">
-                        <div id="habits-daily-tracker"></div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Tagebuch Section -->
         <div id="tagebuch" class="content-section">
-            <!-- Karten-Section 1: Neuer Tagebucheintrag -->
+            <!-- Neuer Tagebucheintrag -->
             <div class="cards-section-full">
                 <div class="card">
                     <h3 style="text-align: left;">Neuer Tagebucheintrag</h3>
@@ -588,7 +505,7 @@
                 </div>
             </div>
 
-            <!-- Karten-Section 2: Tagebucheinträge anzeigen -->
+            <!-- Tagebucheinträge -->
             <div class="cards-section-full" style="margin-top: 30px;">
                 <div class="card">
                     <h3 style="text-align: left;">Meine Tagebucheinträge</h3>
@@ -601,7 +518,7 @@
 
         <!-- Einstellung Section -->
         <div id="einstellung" class="content-section">
-            <!-- Karten-Section 1: Grundeinstellungen -->
+            <!-- Grundeinstellungen -->
             <div class="cards-section-full">
                 <div class="card">
                     <h3 style="text-align: left;">Grundeinstellungen</h3>
@@ -634,38 +551,7 @@
                 </div>
             </div>
 
-            <!-- Karten-Section 2: Gewohnheiten verwalten -->
-            <div class="cards-section-full" style="margin-top: 30px;">
-                <div class="card">
-                    <h3 style="text-align: left;">Gewohnheiten verwalten</h3>
-                    <div class="card-content">
-                        <!-- Gewohnheit hinzufügen -->
-                        <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 15px; align-items: end; margin-bottom: 30px;">
-                            <div class="form-group">
-                                <label for="habit-name-settings">Gewohnheit:</label>
-                                <input type="text" id="habit-name-settings" placeholder="z.B. Joggen, Meditation, etc.">
-                            </div>
-                            <div class="form-group">
-                                <label for="habit-frequency-settings">Häufigkeit pro Woche:</label>
-                                <input type="number" min="1" max="7" id="habit-frequency-settings" placeholder="z.B. 3">
-                            </div>
-                            <div>
-                                <button class="btn-primary" onclick="addHabitFromSettings()">Gewohnheit hinzufügen</button>
-                            </div>
-                        </div>
-
-                        <!-- Ihre Gewohnheiten -->
-                        <div>
-                            <h4 style="margin-bottom: 15px; color: #042630;">Ihre Gewohnheiten</h4>
-                            <div id="habits-settings-table">
-                                <!-- Wird dynamisch gefüllt -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Karten-Section 3: Datenmanagement -->
+            <!-- Datenmanagement -->
             <div class="cards-section-full" style="margin-top: 30px;">
                 <div class="card">
                     <h3 style="text-align: left;">Datenmanagement</h3>
@@ -678,7 +564,7 @@
                         <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
                         <div style="margin-top: 15px; padding: 15px; background: rgba(134, 185, 177, 0.1); border-radius: 8px;">
                             <p style="font-size: 14px; color: #042630; margin: 0;">
-                                <strong>💾 Cloud-Speicherung:</strong> 
+                                <strong>💾 Datenspeicherung:</strong> 
                                 <span id="storage-status">Status wird geladen...</span>
                             </p>
                             <p style="font-size: 12px; color: #666; margin: 5px 0 0 0;">
@@ -692,88 +578,19 @@
     </div>
 
     <script>
+        // ⚠️ FIREBASE KONFIGURATION ⚠️
+        // Ersetzen Sie diese Werte mit Ihren Firebase-Konfigurationsdaten
 	const firebaseConfig = {
-  		apiKey: "AIzaSyDgLo3neIRWlzXaXDZpjNmnp6olqh7Wz7g",
-  		authDomain: "mein-health-tracker.firebaseapp.com",
-  		projectId: "mein-health-tracker",
+ 	 	apiKey: "AIzaSyDgLo3neIRWlzXaXDZpjNmnp6olqh7Wz7g",
+ 	 	authDomain: "mein-health-tracker.firebaseapp.com",
+	 	projectId: "mein-health-tracker",
   		storageBucket: "mein-health-tracker.firebasestorage.app",
   		messagingSenderId: "296062748338",
   		appId: "1:296062748338:web:6b17b73afe264001c72bab",
   		measurementId: "G-414T5Q6H8X"
 	};
 
-        // Firebase initialisieren (nur wenn Konfiguration vorhanden)
-        let db = null;
-        let userId = null;
-        let isOnline = false;
-
-        function initializeFirebase() {
-            // Prüfen ob Firebase-Konfiguration vorhanden ist
-            if (!firebaseConfig.apiKey) {
-                console.warn('Firebase nicht konfiguriert - läuft im Demo-Modus');
-                showFirebaseSetupMessage();
-                return;
-            }
-
-            try {
-                // Firebase initialisieren
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                
-                // Benutzer-ID generieren oder laden
-                userId = localStorage.getItem('healthTracker_userId') || generateUserId();
-                localStorage.setItem('healthTracker_userId', userId);
-                
-                isOnline = true;
-                console.log('Firebase erfolgreich initialisiert');
-                hideFirebaseSetupMessage();
-            } catch (error) {
-                console.error('Firebase Initialisierung fehlgeschlagen:', error);
-                showFirebaseSetupMessage();
-            }
-        }
-
-        function generateUserId() {
-            return 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-        }
-
-        function showFirebaseSetupMessage() {
-            const header = document.querySelector('.header-container');
-            const notice = document.createElement('div');
-            notice.id = 'firebase-notice';
-            notice.style.cssText = `
-                background: linear-gradient(45deg, #dc3545, #c82333);
-                color: white;
-                padding: 15px;
-                text-align: center;
-                margin-bottom: 10px;
-                border-radius: 8px;
-                font-weight: 600;
-            `;
-            notice.innerHTML = `
-                ⚠️ <strong>Firebase-Konfiguration erforderlich</strong><br>
-                <small>Die App läuft im Demo-Modus. Daten werden nicht gespeichert. 
-                Siehe Konsole für Setup-Anweisungen.</small>
-            `;
-            header.parentNode.insertBefore(notice, header.nextSibling);
-        }
-
-        function hideFirebaseSetupMessage() {
-            const notice = document.getElementById('firebase-notice');
-            if (notice) notice.remove();
-        }
-
-        function updateStorageStatus() {
-            const statusElement = document.getElementById('storage-status');
-            if (statusElement) {
-                statusElement.textContent = isOnline 
-                    ? 'Aktiv - Daten werden automatisch in der Cloud gespeichert'
-                    : 'Nicht konfiguriert - Läuft im Demo-Modus';
-                statusElement.style.color = isOnline ? '#28a745' : '#dc3545';
-            }
-        }
-
-        // Data storage with Firebase Cloud Firestore
+        // App Data
         let appData = {
             settings: {
                 fastStart: '',
@@ -782,105 +599,119 @@
                 targetWeight: 0
             },
             weights: [],
-            habits: [],
-            diaryEntries: [],
-            habitChecks: {}
+            diaryEntries: []
         };
 
-        // Load data from Firestore
-        async function loadData() {
-            if (!isOnline) {
-                console.log('Offline-Modus: Keine Daten zu laden');
+        // Firebase variables
+        let db = null;
+        let userId = null;
+        let isFirebaseOnline = false;
+
+        // Status management
+        function showStatus(message, isSuccess = false) {
+            const notice = document.getElementById('status-notice');
+            const text = document.getElementById('status-text');
+            
+            text.textContent = message;
+            notice.className = `status-notice show ${isSuccess ? 'success' : ''}`;
+            
+            setTimeout(() => {
+                notice.classList.remove('show');
+            }, 5000);
+        }
+
+        function updateStorageStatus() {
+            const statusElement = document.getElementById('storage-status');
+            if (statusElement) {
+                statusElement.textContent = isFirebaseOnline 
+                    ? 'Cloud-Speicherung aktiv ✅'
+                    : 'Session-Speicherung (Daten gehen beim Schließen verloren) ⚠️';
+                statusElement.style.color = isFirebaseOnline ? '#28a745' : '#dc3545';
+            }
+        }
+
+        // Firebase initialization
+        function initializeFirebase() {
+            // Check if Firebase config is properly set
+            if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('...')) {
+                console.log('🔥 Firebase-Konfiguration unvollständig');
+                showStatus('⚠️ Firebase nicht konfiguriert - Daten werden nur für diese Session gespeichert');
+                isFirebaseOnline = false;
+                updateStorageStatus();
                 return;
             }
 
             try {
-                const doc = await db.collection('users').doc(userId).get();
-                if (doc.exists) {
-                    const savedData = doc.data();
-                    appData = { ...appData, ...savedData };
-                    console.log('Daten erfolgreich von Firebase geladen');
-                } else {
-                    console.log('Noch keine Daten für diesen Benutzer vorhanden');
-                }
+                // Initialize Firebase v8
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                // Generate user ID (without localStorage)
+                userId = generateUserId();
+                
+                // Test Firebase connection
+                testFirebaseConnection();
+                
             } catch (error) {
-                console.error('Fehler beim Laden der Daten:', error);
-                alert('Fehler beim Laden der Daten. Bitte versuchen Sie es später erneut.');
-            }
-        }
-
-        // Save data to Firestore
-        async function saveData() {
-            if (!isOnline) {
-                console.log('Offline-Modus: Daten werden nicht gespeichert');
-                return;
-            }
-
-            try {
-                await db.collection('users').doc(userId).set({
-                    ...appData,
-                    lastUpdated: new Date().toISOString()
-                });
-                console.log('Daten erfolgreich in Firebase gespeichert');
-            } catch (error) {
-                console.error('Fehler beim Speichern der Daten:', error);
-                alert('Fehler beim Speichern der Daten. Bitte versuchen Sie es später erneut.');
-            }
-        }
-
-        // Auto-save function
-        async function autoSave() {
-            await saveData();
-        }
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('weight-date').value = today;
-            document.getElementById('diary-date').value = today;
-            
-            updateDashboard();
-            updateWeightTable();
-            updateHabitsDisplay();
-            updateDiaryDisplay();
-            updateHabitsSettingsDisplay();
-            updateHabitsWeekTable();
-            drawWeightChart();
-        });
-
-        // Navigation
-        function showSection(sectionName) {
-            // Hide all sections
-            const sections = document.querySelectorAll('.content-section');
-            sections.forEach(section => section.classList.remove('active'));
-            
-            // Show selected section
-            document.getElementById(sectionName).classList.add('active');
-            
-            // Update button states
-            const buttons = document.querySelectorAll('.pill-button');
-            buttons.forEach(button => button.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Update specific sections if needed
-            if (sectionName === 'dashboard') {
-                updateDashboard();
-            } else if (sectionName === 'eingabe') {
-                updateHabitsDailyTracker();
-            } else if (sectionName === 'einstellung') {
-                loadSettingsForm();
+                console.error('🔥 Firebase Initialisierung fehlgeschlagen:', error);
+                showStatus('❌ Firebase-Verbindung fehlgeschlagen - Daten werden nur für diese Session gespeichert');
+                isFirebaseOnline = false;
                 updateStorageStatus();
             }
         }
 
-        // Load settings into form
-        function loadSettingsForm() {
-            const settings = appData.settings;
-            document.getElementById('settings-fast-start').value = settings.fastStart || '';
-            document.getElementById('settings-fast-end').value = settings.fastEnd || '';
-            document.getElementById('settings-start-weight').value = settings.startWeight || '';
-            document.getElementById('settings-target-weight').value = settings.targetWeight || '';
+        async function testFirebaseConnection() {
+            try {
+                // Try to read from Firestore
+                await db.collection('users').doc(userId).get();
+                isFirebaseOnline = true;
+                console.log('🔥 Firebase erfolgreich verbunden');
+                showStatus('✅ Cloud-Speicherung aktiv', true);
+                updateStorageStatus();
+            } catch (error) {
+                console.error('🔥 Firebase-Test fehlgeschlagen:', error);
+                showStatus('❌ Cloud-Verbindung fehlgeschlagen - lokale Speicherung wird verwendet');
+                isFirebaseOnline = false;
+                updateStorageStatus();
+            }
+        }
+
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        }
+
+        // Data persistence
+        async function loadData() {
+            if (isFirebaseOnline) {
+                try {
+                    const doc = await db.collection('users').doc(userId).get();
+                    if (doc.exists) {
+                        const savedData = doc.data();
+                        appData = { ...appData, ...savedData };
+                        console.log('📥 Daten von Firebase geladen');
+                    }
+                } catch (error) {
+                    console.error('❌ Fehler beim Laden von Firebase:', error);
+                }
+            } else {
+                console.log('📝 Keine Datenpersistierung verfügbar - nur Session-Daten');
+            }
+        }
+
+        async function saveData() {
+            if (isFirebaseOnline) {
+                try {
+                    await db.collection('users').doc(userId).set({
+                        ...appData,
+                        lastUpdated: new Date().toISOString()
+                    });
+                    console.log('💾 Daten in Firebase gespeichert');
+                } catch (error) {
+                    console.error('❌ Firebase-Speichern fehlgeschlagen:', error);
+                }
+            } else {
+                console.log('⚠️ Daten können nicht gespeichert werden - Firebase nicht verfügbar');
+            }
         }
 
         // Settings
@@ -890,9 +721,17 @@
             appData.settings.startWeight = parseFloat(document.getElementById('settings-start-weight').value) || 0;
             appData.settings.targetWeight = parseFloat(document.getElementById('settings-target-weight').value) || 0;
             
-            await autoSave();
+            await saveData();
             alert('Einstellungen gespeichert!');
             updateDashboard();
+        }
+
+        function loadSettingsForm() {
+            const settings = appData.settings;
+            document.getElementById('settings-fast-start').value = settings.fastStart || '';
+            document.getElementById('settings-fast-end').value = settings.fastEnd || '';
+            document.getElementById('settings-start-weight').value = settings.startWeight || '';
+            document.getElementById('settings-target-weight').value = settings.targetWeight || '';
         }
 
         // Weight management
@@ -905,7 +744,6 @@
                 return;
             }
             
-            // Check if entry for this date already exists
             const existingIndex = appData.weights.findIndex(entry => entry.date === date);
             if (existingIndex !== -1) {
                 appData.weights[existingIndex].weight = weight;
@@ -913,11 +751,10 @@
                 appData.weights.push({ date, weight });
             }
             
-            // Sort by date
             appData.weights.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             document.getElementById('weight-value').value = '';
-            await autoSave();
+            await saveData();
             updateWeightTable();
             updateDashboard();
         }
@@ -927,7 +764,7 @@
             const newWeight = prompt('Neues Gewicht:', entry.weight);
             if (newWeight !== null && !isNaN(parseFloat(newWeight))) {
                 appData.weights[index].weight = parseFloat(newWeight);
-                await autoSave();
+                await saveData();
                 updateWeightTable();
                 updateDashboard();
             }
@@ -936,7 +773,7 @@
         async function deleteWeight(index) {
             if (confirm('Gewichtseintrag löschen?')) {
                 appData.weights.splice(index, 1);
-                await autoSave();
+                await saveData();
                 updateWeightTable();
                 updateDashboard();
             }
@@ -965,132 +802,8 @@
             });
         }
 
-        // Habits management
-        function addHabit() {
-            const name = document.getElementById('habit-name').value;
-            const frequency = document.getElementById('habit-frequency').value;
-            
-            if (!name) {
-                alert('Bitte Gewohnheit eingeben!');
-                return;
-            }
-            
-            // Convert old frequency format to weekly count
-            let weeklyCount = frequency === 'täglich' ? 7 : 1;
-            
-            appData.habits.push({ name, frequency, weeklyCount });
-            document.getElementById('habit-name').value = '';
-            updateHabitsDisplay();
-            updateHabitsSettingsDisplay();
-        }
-
-        function addHabitFromSettings() {
-            const name = document.getElementById('habit-name-settings').value;
-            const weeklyCount = parseInt(document.getElementById('habit-frequency-settings').value) || 1;
-            
-            if (!name) {
-                alert('Bitte Gewohnheit eingeben!');
-                return;
-            }
-            
-            // Create frequency text for display
-            const frequency = weeklyCount === 7 ? 'täglich' : `${weeklyCount}x/Woche`;
-            
-            appData.habits.push({ name, frequency, weeklyCount });
-            document.getElementById('habit-name-settings').value = '';
-            document.getElementById('habit-frequency-settings').value = '';
-            updateHabitsDisplay();
-            updateHabitsSettingsDisplay();
-            updateHabitsWeekTable();
-        }
-
-        // Habits management
-        function addHabit() {
-            const name = document.getElementById('habit-name').value;
-            const frequency = document.getElementById('habit-frequency').value;
-            
-            if (!name) {
-                alert('Bitte Gewohnheit eingeben!');
-                return;
-            }
-            
-            // Convert old frequency format to weekly count
-            let weeklyCount = frequency === 'täglich' ? 7 : 1;
-            
-            appData.habits.push({ name, frequency, weeklyCount });
-            document.getElementById('habit-name').value = '';
-            updateHabitsDisplay();
-            updateHabitsSettingsDisplay();
-            updateHabitsWeekTable();
-        }
-
-        function updateHabitsSettingsDisplay() {
-            const container = document.getElementById('habits-settings-table');
-            container.innerHTML = '';
-            
-            if (appData.habits.length === 0) {
-                container.innerHTML = '<p style="color: #666; font-style: italic;">Noch keine Gewohnheiten hinzugefügt.</p>';
-                return;
-            }
-            
-            appData.habits.forEach((habit, index) => {
-                const div = document.createElement('div');
-                div.className = 'habits-settings-item';
-                div.innerHTML = `
-                    <div class="list-content">
-                        <strong>${habit.name}</strong> <em>(${habit.frequency})</em>
-                    </div>
-                    <div class="list-actions">
-                        <button class="btn-secondary" onclick="editHabitFromSettings(${index})">Bearbeiten</button>
-                        <button class="btn-danger" onclick="deleteHabitFromSettings(${index})">Löschen</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        // Empty function for compatibility (not used anymore but might be called)
-        function updateHabitsDisplay() {
-            // This function is no longer needed but kept for compatibility
-            console.log('updateHabitsDisplay called - no longer used');
-        }
-
-        // Safety function to prevent errors
-        function updateHabitsTracker() {
-            // This function is no longer needed but kept to prevent errors
-            console.log('updateHabitsTracker called - replaced by updateHabitsDailyTracker');
-        }
-
-        function editHabitFromSettings(index) {
-            const habit = appData.habits[index];
-            const newName = prompt('Gewohnheit bearbeiten:', habit.name);
-            if (newName !== null && newName.trim() !== '') {
-                const newWeeklyCount = prompt('Häufigkeit pro Woche (1-7):', habit.weeklyCount);
-                if (newWeeklyCount !== null && !isNaN(parseInt(newWeeklyCount))) {
-                    const weeklyCount = Math.max(1, Math.min(7, parseInt(newWeeklyCount)));
-                    const frequency = weeklyCount === 7 ? 'täglich' : `${weeklyCount}x/Woche`;
-                    
-                    appData.habits[index].name = newName.trim();
-                    appData.habits[index].frequency = frequency;
-                    appData.habits[index].weeklyCount = weeklyCount;
-                    updateHabitsSettingsDisplay();
-                    updateHabitsWeekTable();
-                    updateHabitsDailyTracker();
-                }
-            }
-        }
-
-        function deleteHabitFromSettings(index) {
-            if (confirm('Gewohnheit löschen?')) {
-                appData.habits.splice(index, 1);
-                updateHabitsSettingsDisplay();
-                updateHabitsWeekTable();
-                updateHabitsDailyTracker();
-            }
-        }
-
         // Diary management
-        function addDiaryEntry() {
+        async function addDiaryEntry() {
             const date = document.getElementById('diary-date').value;
             const title = document.getElementById('diary-title').value;
             const content = document.getElementById('diary-content').value;
@@ -1105,11 +818,11 @@
             
             document.getElementById('diary-title').value = '';
             document.getElementById('diary-content').value = '';
-            autoSave();
+            await saveData();
             updateDiaryDisplay();
         }
 
-        function editDiaryEntry(index) {
+        async function editDiaryEntry(index) {
             const entry = appData.diaryEntries[index];
             const newTitle = prompt('Titel bearbeiten:', entry.title);
             if (newTitle !== null && newTitle.trim() !== '') {
@@ -1117,16 +830,16 @@
                 if (newContent !== null) {
                     appData.diaryEntries[index].title = newTitle.trim();
                     appData.diaryEntries[index].content = newContent;
-                    autoSave();
+                    await saveData();
                     updateDiaryDisplay();
                 }
             }
         }
 
-        function deleteDiaryEntry(index) {
+        async function deleteDiaryEntry(index) {
             if (confirm('Tagebucheintrag löschen?')) {
                 appData.diaryEntries.splice(index, 1);
-                autoSave();
+                await saveData();
                 updateDiaryDisplay();
             }
         }
@@ -1219,201 +932,64 @@
                 document.getElementById('progress-text').textContent = progressPercent.toFixed(1) + '%';
             }
             
-            // Update weight chart
             drawWeightChart();
-            
-            // Update habits tracker
-            updateHabitsTracker();
-        }
-
-        // Data export/import/reset functions
-        function exportData() {
-            try {
-                const dataToExport = {
-                    ...appData,
-                    exportDate: new Date().toISOString(),
-                    version: '2.0',
-                    source: 'Health-Tracker-Firebase'
-                };
-                
-                const dataBlob = new Blob([JSON.stringify(dataToExport, null, 2)], {
-                    type: 'application/json'
-                });
-                
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `health-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                
-                alert('Daten erfolgreich exportiert!');
-            } catch (error) {
-                alert('Fehler beim Exportieren der Daten: ' + error.message);
-            }
-        }
-
-        async function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    // Validate data structure
-                    if (!importedData.settings || !Array.isArray(importedData.weights) || 
-                        !Array.isArray(importedData.habits) || !Array.isArray(importedData.diaryEntries)) {
-                        throw new Error('Ungültiges Datenformat');
-                    }
-                    
-                    if (confirm('Möchten Sie Ihre aktuellen Daten durch die importierten Daten ersetzen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
-                        appData = {
-                            settings: importedData.settings || {},
-                            weights: importedData.weights || [],
-                            habits: importedData.habits || [],
-                            diaryEntries: importedData.diaryEntries || [],
-                            habitChecks: importedData.habitChecks || {}
-                        };
-                        
-                        await autoSave();
-                        
-                        // Update all displays
-                        loadSettingsForm();
-                        updateDashboard();
-                        updateWeightTable();
-                        updateDiaryDisplay();
-                        updateHabitsSettingsDisplay();
-                        updateHabitsWeekTable();
-                        updateHabitsDailyTracker();
-                        
-                        alert('Daten erfolgreich importiert!');
-                    }
-                } catch (error) {
-                    alert('Fehler beim Importieren der Daten: ' + error.message);
-                }
-            };
-            reader.readAsText(file);
-            
-            // Reset file input
-            event.target.value = '';
-        }
-
-        async function resetAllData() {
-            if (confirm('Sind Sie sicher, dass Sie ALLE Daten löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden!')) {
-                if (confirm('Letzte Warnung: Alle Einstellungen, Gewichtsdaten, Gewohnheiten und Tagebucheinträge werden unwiderruflich gelöscht!')) {
-                    appData = {
-                        settings: {
-                            fastStart: '',
-                            fastEnd: '',
-                            startWeight: 0,
-                            targetWeight: 0
-                        },
-                        weights: [],
-                        habits: [],
-                        diaryEntries: [],
-                        habitChecks: {}
-                    };
-                    
-                    await autoSave();
-                    
-                    // Update all displays
-                    loadSettingsForm();
-                    updateDashboard();
-                    updateWeightTable();
-                    updateDiaryDisplay();
-                    updateHabitsSettingsDisplay();
-                    updateHabitsWeekTable();
-                    updateHabitsDailyTracker();
-                    
-                    alert('Alle Daten wurden gelöscht!');
-                }
-            }
         }
 
         function getCurrentWeight() {
             if (appData.weights.length === 0) return null;
-            return appData.weights[0].weight; // Latest weight (already sorted)
+            return appData.weights[0].weight;
         }
 
         // Weight chart
         function drawWeightChart() {
             const settings = appData.settings;
-            if (!settings.startWeight || !settings.targetWeight || !settings.fastStart || !settings.fastEnd) {
-                const svg = document.getElementById('weight-chart');
-                svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#666" font-size="16">Bitte Grundeinstellungen vollständig konfigurieren</text>';
+            const svg = document.getElementById('weight-chart');
+            
+            if (!settings.startWeight || !settings.targetWeight) {
+                svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#666" font-size="16">Bitte Grundeinstellungen konfigurieren</text>';
                 return;
             }
 
-            const svg = document.getElementById('weight-chart');
             const svgRect = svg.getBoundingClientRect();
             const width = svgRect.width || 800;
             const height = 300;
             
-            // Update SVG size
             svg.setAttribute('width', width);
             svg.setAttribute('height', height);
-            
-            // Clear previous content
             svg.innerHTML = '';
             
-            // Get dates for the entire fasting period
-            const startDate = new Date(settings.fastStart);
-            const endDate = new Date(settings.fastEnd);
+            // Get last 14 days
             const chartDates = [];
+            const today = new Date();
             
-            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                chartDates.push(d.toISOString().split('T')[0]);
+            for (let i = 13; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                chartDates.push(date.toISOString().split('T')[0]);
             }
             
-            // Limit to max 60 days for readability
-            if (chartDates.length > 60) {
-                const today = new Date();
-                const todayStr = today.toISOString().split('T')[0];
-                const todayIndex = chartDates.indexOf(todayStr);
-                
-                if (todayIndex !== -1) {
-                    // Show 30 days before and after today
-                    const start = Math.max(0, todayIndex - 30);
-                    const end = Math.min(chartDates.length, todayIndex + 30);
-                    chartDates.splice(0, start);
-                    chartDates.splice(end - start);
-                } else {
-                    // If today is not in range, show first 60 days
-                    chartDates.splice(60);
-                }
-            }
-            
-            // Chart dimensions
             const margin = { top: 20, right: 20, bottom: 60, left: 60 };
             const chartWidth = width - margin.left - margin.right;
             const chartHeight = height - margin.top - margin.bottom;
             
-            // Weight range for Y-axis
             const minWeight = Math.min(settings.targetWeight - 2, settings.startWeight - 5);
             const maxWeight = Math.max(settings.startWeight + 2, settings.targetWeight + 5);
             const weightRange = maxWeight - minWeight;
             
-            // Helper functions
             function getX(dayIndex) {
-                return margin.left + (dayIndex * chartWidth / Math.max(1, chartDates.length - 1));
+                return margin.left + (dayIndex * chartWidth / (chartDates.length - 1));
             }
             
             function getY(weight) {
                 return margin.top + chartHeight - ((weight - minWeight) / weightRange * chartHeight);
             }
             
-            // Draw grid lines (vertical)
-            const gridInterval = Math.max(1, Math.floor(chartDates.length / 10));
-            for (let i = 0; i < chartDates.length; i += gridInterval) {
+            // Draw grid
+            for (let i = 0; i < chartDates.length; i += 2) {
                 const x = getX(i);
                 svg.innerHTML += `<line x1="${x}" y1="${margin.top}" x2="${x}" y2="${height - margin.bottom}" stroke="rgba(134, 185, 177, 0.3)" stroke-width="1"/>`;
             }
             
-            // Draw Y-axis grid
             for (let i = 0; i <= 5; i++) {
                 const weight = minWeight + (weightRange / 5 * i);
                 const y = getY(weight);
@@ -1425,10 +1001,9 @@
             svg.innerHTML += `<line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${height - margin.bottom}" stroke="#042630" stroke-width="2"/>`;
             svg.innerHTML += `<line x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}" stroke="#042630" stroke-width="2"/>`;
             
-            // X-axis labels (dates)
-            const labelInterval = Math.max(1, Math.floor(chartDates.length / 8));
+            // X-axis labels
             chartDates.forEach((date, i) => {
-                if (i % labelInterval === 0) {
+                if (i % 2 === 0) {
                     const x = getX(i);
                     const dateObj = new Date(date);
                     svg.innerHTML += `<text x="${x}" y="${height - margin.bottom + 20}" text-anchor="middle" font-size="10" fill="#4B7272">${dateObj.getDate()}.${dateObj.getMonth() + 1}</text>`;
@@ -1438,15 +1013,15 @@
             // Y-axis label
             svg.innerHTML += `<text x="20" y="${height/2}" text-anchor="middle" transform="rotate(-90 20 ${height/2})" font-size="12" fill="#042630">Gewicht (kg)</text>`;
             
-            // Draw target weight line (green)
+            // Draw target weight line
             const targetY = getY(settings.targetWeight);
             svg.innerHTML += `<line x1="${margin.left}" y1="${targetY}" x2="${width - margin.right}" y2="${targetY}" stroke="#28a745" stroke-width="3" stroke-dasharray="5,5"/>`;
             
-            // Draw start weight line (red)
+            // Draw start weight line
             const startY = getY(settings.startWeight);
             svg.innerHTML += `<line x1="${margin.left}" y1="${startY}" x2="${width - margin.right}" y2="${startY}" stroke="#dc3545" stroke-width="3" stroke-dasharray="5,5"/>`;
             
-            // Draw actual weight data (blue line)
+            // Draw actual weight data
             const actualWeights = chartDates.map(date => {
                 const entry = appData.weights.find(w => w.date === date);
                 return entry ? entry.weight : null;
@@ -1467,132 +1042,138 @@
                         pathData += ` L ${x} ${y}`;
                     }
                     
-                    // Draw data point
                     svg.innerHTML += `<circle cx="${x}" cy="${y}" r="4" fill="#86B9B1" stroke="white" stroke-width="2"/>`;
                 }
             });
             
-            // Draw the line if we have data
             if (hasData && pathData) {
                 svg.innerHTML += `<path d="${pathData}" stroke="#4B7272" stroke-width="3" fill="none"/>`;
             }
         }
-        function updateHabitsWeekTable() {
-            const container = document.getElementById('habits-week-table-container');
-            
-            if (appData.habits.length === 0) {
-                container.innerHTML = '<p style="color: #666; font-style: italic; text-align: center; padding: 20px;">Noch keine Gewohnheiten definiert. Gehen Sie zu "Einstellungen" um Gewohnheiten hinzuzufügen.</p>';
-                return;
-            }
-            
-            // Get current week dates
-            const today = new Date();
-            const currentWeekDates = [];
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
-            
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(startOfWeek);
-                date.setDate(startOfWeek.getDate() + i);
-                currentWeekDates.push(date);
-            }
-            
-            // Create table
-            let tableHtml = '<table class="habits-week-table">';
-            
-            // Header row
-            tableHtml += '<thead><tr><th style="text-align: left;">Gewohnheit</th>';
-            const weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-            currentWeekDates.forEach((date, index) => {
-                const dayNum = date.getDate();
-                const month = date.getMonth() + 1;
-                tableHtml += `<th>${weekdays[index]}<br><small>${dayNum}.${month}</small></th>`;
-            });
-            tableHtml += '</tr></thead>';
-            
-            // Body rows - one for each habit
-            tableHtml += '<tbody>';
-            appData.habits.forEach((habit, habitIndex) => {
-                tableHtml += '<tr>';
-                tableHtml += `<td class="habit-name">${habit.name}<br><small style="color: #666;">(${habit.frequency})</small></td>`;
+
+        // Export/Import/Reset
+        function exportData() {
+            try {
+                const dataToExport = {
+                    ...appData,
+                    exportDate: new Date().toISOString(),
+                    version: '3.0'
+                };
                 
-                currentWeekDates.forEach((date, dayIndex) => {
-                    const dateString = date.toISOString().split('T')[0];
-                    const isChecked = isHabitChecked(habitIndex, dateString);
-                    const checkClass = isChecked ? 'checked' : '';
-                    const checkSymbol = isChecked ? '✓' : '';
-                    
-                    tableHtml += `<td>
-                        <div class="habit-checkbox ${checkClass}" 
-                             onclick="toggleHabitCheck(${habitIndex}, '${dateString}')"
-                             title="Gewohnheit für ${weekdays[dayIndex]} abhaken">
-                            ${checkSymbol}
-                        </div>
-                    </td>`;
+                const dataBlob = new Blob([JSON.stringify(dataToExport, null, 2)], {
+                    type: 'application/json'
                 });
                 
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody></table>';
-            
-            container.innerHTML = tableHtml;
-        }
-
-        function isHabitChecked(habitIndex, date) {
-            if (!appData.habitChecks) appData.habitChecks = {};
-            return appData.habitChecks[`${habitIndex}-${date}`] === true;
-        }
-
-        // Daily habits tracker for input page
-        function updateHabitsDailyTracker() {
-            const container = document.getElementById('habits-daily-tracker');
-            
-            if (appData.habits.length === 0) {
-                container.innerHTML = '<p style="color: #666; font-style: italic; text-align: center; padding: 20px;">Noch keine Gewohnheiten definiert. Gehen Sie zu "Einstellungen" um Gewohnheiten hinzuzufügen.</p>';
-                return;
-            }
-            
-            const today = new Date().toISOString().split('T')[0];
-            const todayFormatted = new Date().toLocaleDateString('de-DE');
-            
-            let habitsHtml = `<h4 style="margin-bottom: 20px; color: #042630;">Gewohnheiten für heute (${todayFormatted})</h4>`;
-            habitsHtml += '<div style="display: grid; gap: 15px;">';
-            
-            appData.habits.forEach((habit, habitIndex) => {
-                const isChecked = isHabitChecked(habitIndex, today);
-                const checkClass = isChecked ? 'checked' : '';
-                const checkSymbol = isChecked ? '✓' : '';
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `health-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
                 
-                habitsHtml += `
-                    <div class="list-item" style="cursor: pointer;" onclick="toggleHabitCheck(${habitIndex}, '${today}')">
-                        <div class="list-content" style="display: flex; align-items: center; gap: 15px;">
-                            <div class="habit-checkbox ${checkClass}">
-                                ${checkSymbol}
-                            </div>
-                            <div>
-                                <strong>${habit.name}</strong><br>
-                                <small style="color: #666;">${habit.frequency}</small>
-                            </div>
-                        </div>
-                        <div style="color: ${isChecked ? '#28a745' : '#666'}; font-weight: bold;">
-                            ${isChecked ? 'Erledigt ✅' : 'Ausstehend'}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            habitsHtml += '</div>';
-            container.innerHTML = habitsHtml;
+                alert('Daten erfolgreich exportiert!');
+            } catch (error) {
+                alert('Fehler beim Exportieren: ' + error.message);
+            }
         }
 
-        function toggleHabitCheck(habitIndex, date) {
-            if (!appData.habitChecks) appData.habitChecks = {};
-            const key = `${habitIndex}-${date}`;
-            appData.habitChecks[key] = !appData.habitChecks[key];
-            autoSave();
-            updateHabitsWeekTable();
-            updateHabitsDailyTracker();
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.settings || !Array.isArray(importedData.weights) || !Array.isArray(importedData.diaryEntries)) {
+                        throw new Error('Ungültiges Datenformat');
+                    }
+                    
+                    if (confirm('Aktuelle Daten durch importierte Daten ersetzen?')) {
+                        appData = {
+                            settings: importedData.settings || {},
+                            weights: importedData.weights || [],
+                            diaryEntries: importedData.diaryEntries || []
+                        };
+                        
+                        await saveData();
+                        loadSettingsForm();
+                        updateDashboard();
+                        updateWeightTable();
+                        updateDiaryDisplay();
+                        
+                        alert('Daten erfolgreich importiert!');
+                    }
+                } catch (error) {
+                    alert('Fehler beim Importieren: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
         }
+
+        async function resetAllData() {
+            if (confirm('ALLE Daten löschen? Diese Aktion kann nicht rückgängig gemacht werden!')) {
+                appData = {
+                    settings: { fastStart: '', fastEnd: '', startWeight: 0, targetWeight: 0 },
+                    weights: [],
+                    diaryEntries: []
+                };
+                
+                await saveData();
+                loadSettingsForm();
+                updateDashboard();
+                updateWeightTable();
+                updateDiaryDisplay();
+                
+                alert('Alle Daten wurden gelöscht!');
+            }
+        }
+
+        // Navigation
+        function showSection(sectionName) {
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.remove('active'));
+            
+            document.getElementById(sectionName).classList.add('active');
+            
+            const buttons = document.querySelectorAll('.pill-button');
+            buttons.forEach(button => button.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (sectionName === 'dashboard') {
+                updateDashboard();
+            } else if (sectionName === 'einstellung') {
+                loadSettingsForm();
+                updateStorageStatus();
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Health-Tracker wird gestartet...');
+            
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('weight-date').value = today;
+            document.getElementById('diary-date').value = today;
+            
+            // Initialize Firebase
+            initializeFirebase();
+            
+            // Small delay to let Firebase initialize
+            setTimeout(async () => {
+                await loadData();
+                loadSettingsForm();
+                updateDashboard();
+                updateWeightTable();
+                updateDiaryDisplay();
+                updateStorageStatus();
+            }, 1000);
+        });
     </script>
 </body>
 </html>
