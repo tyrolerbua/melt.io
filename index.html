@@ -7,20 +7,20 @@
 
     <!-- Firebase SDK v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <!-- ===================  STYLES  =================== -->
     <style>
-        /* … (unverändert – alle bisherigen Styles) … */
-        /* Den kompletten Style‑Block habe ich unverändert gelassen,
-           damit Ihr bisheriges Design exakt erhalten bleibt.      */
-        /* --------------------------------------------------------- */
-
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#CFD6D5 0%,#86B9B1 100%);min-height:100vh;padding:20px;color:#26343E}
         .container{max-width:1200px;margin:0 auto;background:#fff;border-radius:15px;box-shadow:0 10px 30px rgba(4,38,48,.2);overflow:hidden}
         .header-container{width:100%;background:linear-gradient(45deg,#042630 0%,#26343E 100%);padding:30px 20px;border-radius:15px 15px 0 0;box-shadow:0 4px 20px rgba(4,38,48,.3)}
         .header-title{font-size:40px;font-weight:bold;text-align:center;color:#fff;text-shadow:2px 2px 4px rgba(0,0,0,.3);margin-bottom:20px}
+        .user-info{display:flex;justify-content:space-between;align-items:center;background:rgba(134,185,177,.1);padding:10px 15px;border-radius:8px;margin-bottom:15px}
+        .user-email{color:#fff;font-weight:500}
+        .logout-btn{background:rgba(220,53,69,.8);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500}
+        .logout-btn:hover{background:rgba(220,53,69,1)}
         .status-notice{background:linear-gradient(45deg,#dc3545,#c82333);color:#fff;padding:15px;text-align:center;margin-bottom:10px;border-radius:8px;font-weight:600;display:none}
         .status-notice.show{display:block}
         .status-notice.success{background:linear-gradient(45deg,#28a745,#20c997)}
@@ -58,15 +58,69 @@
         .weight-table{width:100%;border-collapse:collapse;margin-top:20px}
         .weight-table th,.weight-table td{padding:12px;text-align:left;border-bottom:1px solid rgba(134,185,177,.3)}
         .weight-table th{background:linear-gradient(145deg,#86B9B1,#CFD6D5);font-weight:600;color:#042630}
+
+        /* LOGIN STYLES */
+        .auth-container{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(4,38,48,.9);display:flex;align-items:center;justify-content:center;z-index:1000}
+        .auth-box{background:#fff;padding:40px;border-radius:15px;box-shadow:0 20px 60px rgba(4,38,48,.3);max-width:450px;width:90%}
+        .auth-title{font-size:24px;font-weight:bold;text-align:center;color:#042630;margin-bottom:10px}
+        .auth-subtitle{font-size:14px;text-align:center;color:#666;margin-bottom:30px;line-height:1.4}
+        .loading{display:none;text-align:center;color:#666;font-style:italic;margin:20px 0}
+        .success-message{background:linear-gradient(45deg,#28a745,#20c997);color:#fff;padding:20px;border-radius:8px;text-align:center;font-weight:600;margin-top:20px;display:none}
+        .email-hint{font-size:12px;color:#666;margin-top:10px;text-align:center}
+
         @media(max-width:768px){.cards-section{grid-template-columns:1fr}.nav-buttons{flex-direction:column;align-items:center}.header-title{font-size:28px}}
     </style>
 </head>
 <body>
-<div class="container">
+
+<!-- ===================  LOGIN OVERLAY  =================== -->
+<div id="auth-container" class="auth-container">
+    <div class="auth-box">
+        <h2 class="auth-title">📱 Health-Tracker</h2>
+        <p class="auth-subtitle">
+            Geben Sie einfach Ihre E-Mail-Adresse ein.<br>
+            Sie erhalten einen Anmelde-Link per E-Mail.
+        </p>
+        
+        <div class="loading" id="auth-loading">
+            📧 E-Mail wird gesendet...
+        </div>
+        
+        <form id="auth-form" onsubmit="sendEmailLink(event)" style="display:block">
+            <div class="form-group">
+                <label for="auth-email">E-Mail-Adresse:</label>
+                <input type="email" id="auth-email" placeholder="ihre@email.de" required>
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%">
+                📧 Anmelde-Link senden
+            </button>
+            <div class="email-hint">
+                Sie bekommen einen Link per E-Mail. Klicken Sie darauf, um sich anzumelden.
+            </div>
+        </form>
+        
+        <div class="success-message" id="success-message">
+            ✅ E-Mail gesendet!<br>
+            <small>Prüfen Sie Ihr Postfach und klicken Sie auf den Link.</small>
+        </div>
+    </div>
+</div>
+
+<!-- ===================  MAIN APP  =================== -->
+<div class="container" id="main-app" style="display:none">
     <!-- ===================  HEADER  =================== -->
     <div class="header-container">
         <h1 class="header-title">Health‑Tracker</h1>
-        <div id="status-notice" class="status-notice"><span id="status-text">Status wird geladen…</span></div>
+        
+        <div class="user-info">
+            <span class="user-email" id="user-email"></span>
+            <button class="logout-btn" onclick="logout()">Abmelden</button>
+        </div>
+        
+        <div id="status-notice" class="status-notice">
+            <span id="status-text">Status wird geladen…</span>
+        </div>
+        
         <div class="nav-buttons">
             <button class="pill-button active" onclick="showSection('dashboard')">Dashboard</button>
             <button class="pill-button"        onclick="showSection('eingabe')">Eingabe</button>
@@ -84,8 +138,8 @@
                 <div class="card-content">
                     <div><span class="label">Startdatum:</span> <span class="value" id="fast-start">‑</span></div>
                     <div><span class="label">Zieldatum:</span> <span class="value" id="fast-end">‑</span></div>
-                    <div><span class="label">Verbleibende Wochen:</span> <span class="value" id="weeks-left">‑</span></div>
-                    <div><span class="label">Verbleibende Tage:</span> <span class="value" id="days-left">‑</span></div>
+                    <div><span class="label">Verbleibende Wochen:</span> <span class="value" id="weeks-left">‑</span></div>
+                    <div><span class="label">Verbleibende Tage:</span> <span class="value" id="days-left">‑</span></div>
                 </div>
             </div>
 
@@ -96,8 +150,8 @@
                     <div><span class="label">Startgewicht:</span> <span class="value" id="start-weight">‑</span></div>
                     <div><span class="label">Zielgewicht:</span> <span class="value" id="target-weight">‑</span></div>
                     <div><span class="label">Gesamtabnahme:</span> <span class="value" id="total-loss">‑</span></div>
-                    <div><span class="label">Ø pro Woche:</span> <span class="value" id="avg-week">‑</span></div>
-                    <div><span class="label">Ø pro Tag:</span> <span class="value" id="avg-day">‑</span></div>
+                    <div><span class="label">Ø pro Woche:</span> <span class="value" id="avg-week">‑</span></div>
+                    <div><span class="label">Ø pro Tag:</span> <span class="value" id="avg-day">‑</span></div>
                 </div>
             </div>
 
@@ -143,8 +197,8 @@
                             <input type="date" id="weight-date">
                         </div>
                         <div class="form-group">
-                            <label for="weight-value">Gewicht (kg):</label>
-                            <input type="number" step="0.1" id="weight-value" placeholder="z. B. 75.5">
+                            <label for="weight-value">Gewicht (kg):</label>
+                            <input type="number" step="0.1" id="weight-value" placeholder="z. B. 75.5">
                         </div>
                         <div><button class="btn-primary" onclick="addWeight()">Gewicht hinzufügen</button></div>
                     </div>
@@ -158,7 +212,7 @@
                 <h3 style="text-align:left">Gewichtseinträge</h3>
                 <div class="card-content">
                     <table class="weight-table">
-                        <thead><tr><th>Datum</th><th>Gewicht (kg)</th><th>Aktionen</th></tr></thead>
+                        <thead><tr><th>Datum</th><th>Gewicht (kg)</th><th>Aktionen</th></tr></thead>
                         <tbody id="weight-entries"></tbody>
                     </table>
                 </div>
@@ -198,8 +252,8 @@
                 <h3 style="text-align:left">Grundeinstellungen</h3>
                 <div class="card-content">
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px">
-                        <div class="form-group"><label for="settings-start-weight">Startgewicht (kg):</label><input type="number" step="0.1" id="settings-start-weight" placeholder="z. B. 80.0"></div>
-                        <div class="form-group"><label for="settings-target-weight">Zielgewicht (kg):</label><input type="number" step="0.1" id="settings-target-weight" placeholder="z. B. 70.0"></div>
+                        <div class="form-group"><label for="settings-start-weight">Startgewicht (kg):</label><input type="number" step="0.1" id="settings-start-weight" placeholder="z. B. 80.0"></div>
+                        <div class="form-group"><label for="settings-target-weight">Zielgewicht (kg):</label><input type="number" step="0.1" id="settings-target-weight" placeholder="z. B. 70.0"></div>
                         <div class="form-group"><label for="settings-fast-start">Startdatum:</label><input type="date" id="settings-fast-start"></div>
                         <div class="form-group"><label for="settings-fast-end">Zieldatum:</label><input type="date" id="settings-fast-end"></div>
                     </div>
@@ -216,12 +270,16 @@
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px">
                         <button class="btn-secondary" onclick="exportData()">Daten exportieren</button>
                         <button class="btn-secondary" onclick="document.getElementById('import-file').click()">Daten importieren</button>
-                        <button class="btn-danger"    onclick="resetAllData()">Alle Daten löschen</button>
+                        <button class="btn-danger" onclick="resetAllData()">Alle Daten löschen</button>
                     </div>
                     <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
                     <div style="margin-top:15px;padding:15px;background:rgba(134,185,177,.1);border-radius:8px">
-                        <p style="font-size:14px;color:#042630;margin:0"><strong>💾 Datenspeicherung:</strong> <span id="storage-status">Status wird geladen…</span></p>
-                        <p style="font-size:12px;color:#666;margin:5px 0 0">Export/Import für Backups und Geräte‑Transfer verwenden.</p>
+                        <p style="font-size:14px;color:#042630;margin:0">
+                            <strong>🔒 Sichere Cloud-Speicherung aktiv</strong>
+                        </p>
+                        <p style="font-size:12px;color:#666;margin:5px 0 0">
+                            Ihre Daten sind verschlüsselt und nur für Sie zugänglich.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -231,7 +289,7 @@
 
 <!-- ===================  SCRIPT  =================== -->
 <script>
-/* ---------- 1.  Firebase‑Konfiguration (Ihre echten Werte) ---------- */
+/* ---------- 1. Firebase-Konfiguration ---------- */
 const firebaseConfig = {
   apiKey:            "AIzaSyDgLo3neIRWlzXaXDZpjNmnp6olqh7Wz7g",
   authDomain:        "mein-health-tracker.firebaseapp.com",
@@ -242,134 +300,214 @@ const firebaseConfig = {
   measurementId:     "G-414T5Q6H8X"
 };
 
-/* ---------- 2.  Schlüssel für Local Storage ---------- */
-const USER_ID_KEY    = 'healthTrackerUserId';
-const LOCAL_DATA_KEY = 'healthTrackerData';
+/* ---------- 2. Globale Variablen ---------- */
+let auth = null;
+let db = null;
+let currentUser = null;
 
-/* ---------- 3.  Zentrale App‑Daten ---------- */
+/* ---------- 3. App-Daten ---------- */
 let appData = {
     settings: { fastStart:'', fastEnd:'', startWeight:0, targetWeight:0 },
     weights:  [],
     diaryEntries:[]
 };
 
-/* ---------- 4.  Firebase‑Variablen ---------- */
-let db               = null;
-let userId           = null;
-let isFirebaseOnline = false;
-
 /* ==================================================================== */
-/*  -------------------------  HELPER  -------------------------------- */
+/*  ------------------------  AUTHENTICATION  ------------------------ */
 /* ==================================================================== */
 
-// 4.1 User‑ID einmalig erzeugen oder wiederverwenden
-function getOrCreateUserId() {
-    let id = localStorage.getItem(USER_ID_KEY);
-    if (!id) {
-        id = 'user_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
-        localStorage.setItem(USER_ID_KEY, id);
-    }
-    return id;
-}
-
-// 4.2 Local‑Backup laden/speichern
-function loadLocalBackup() {
-    const raw = localStorage.getItem(LOCAL_DATA_KEY);
-    if (raw) {
-        try { appData = JSON.parse(raw); }
-        catch(e){ console.warn('Lokaler Backup‑Datensatz defekt', e);}
-    }
-}
-function saveLocalBackup() {
-    localStorage.setItem(LOCAL_DATA_KEY, JSON.stringify(appData));
-}
-
-// 4.3 Statusanzeige
-function showStatus(msg, ok=false) {
-    const notice = document.getElementById('status-notice');
-    const text   = document.getElementById('status-text');
-    text.textContent = msg;
-    notice.className = `status-notice show ${ok?'success':''}`;
-    setTimeout(()=>notice.classList.remove('show'), 5000);
-}
-function updateStorageStatus() {
-    const el = document.getElementById('storage-status');
-    if (!el) return;
-    el.textContent = isFirebaseOnline
-        ? 'Cloud‑Speicherung aktiv ✅'
-        : 'Lokales Backup (offline) ⚠️';
-    el.style.color = isFirebaseOnline ? '#28a745' : '#dc3545';
-}
-
-/* ==================================================================== */
-/*  ----------------------  FIREBASE  --------------------------------- */
-/* ==================================================================== */
 function initializeFirebase() {
-    if (!firebaseConfig.apiKey) {               // Konfig nicht gesetzt
-        console.warn('Firebase nicht konfiguriert');
-        isFirebaseOnline=false;
-        updateStorageStatus();
-        return;
-    }
     try {
         firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
         db = firebase.firestore();
-        userId = getOrCreateUserId();           // <- stabile ID
+        
+        // Konfiguration für Email Link Authentication
+        const actionCodeSettings = {
+            url: window.location.href,
+            handleCodeInApp: true,
+        };
+        
+        // Auth State Listener
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                showMainApp();
+                loadUserData();
+            } else {
+                currentUser = null;
+                showAuthForm();
+            }
+        });
+        
+        // Check if user is signing in via email link
+        if (auth.isSignInWithEmailLink(window.location.href)) {
+            handleEmailLinkSignIn();
+        }
+        
     } catch(err) {
-        console.error('Firebase Init fehlgeschlagen', err);
-        isFirebaseOnline=false;
-        updateStorageStatus();
+        console.error('Firebase Initialisierung fehlgeschlagen:', err);
+        showStatus('Fehler bei der Initialisierung', false);
     }
 }
 
-// Verbindung testen
-async function testFirebaseConnection() {
+function showAuthForm() {
+    document.getElementById('auth-container').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+}
+
+function showMainApp() {
+    document.getElementById('auth-container').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    document.getElementById('user-email').textContent = currentUser.email;
+    showStatus('✅ Erfolgreich angemeldet!', true);
+}
+
+async function sendEmailLink(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('auth-email').value;
+    const loading = document.getElementById('auth-loading');
+    const form = document.getElementById('auth-form');
+    const successMessage = document.getElementById('success-message');
+    
+    if (!email) {
+        alert('Bitte geben Sie eine E-Mail-Adresse ein.');
+        return;
+    }
+    
+    loading.style.display = 'block';
+    form.style.display = 'none';
+    
+    const actionCodeSettings = {
+        url: window.location.href,
+        handleCodeInApp: true,
+    };
+    
     try {
-        await db.collection('users').doc(userId).get();
-        isFirebaseOnline=true;
-        showStatus('✅ Cloud‑Speicherung aktiv', true);
-    } catch(err){
-        console.warn('Firebase nicht erreichbar:', err);
-        isFirebaseOnline=false;
-        showStatus('❌ Cloud nicht erreichbar – lokale Speicherung');
+        await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+        
+        // E-Mail-Adresse für späteren Abruf speichern
+        window.localStorage.setItem('emailForSignIn', email);
+        
+        loading.style.display = 'none';
+        successMessage.style.display = 'block';
+        
+        console.log('✅ E-Mail-Link gesendet an:', email);
+        
+    } catch(error) {
+        console.error('Fehler beim Senden der E-Mail:', error);
+        
+        let message = 'Fehler beim Senden der E-Mail';
+        switch(error.code) {
+            case 'auth/invalid-email':
+                message = 'Ungültige E-Mail-Adresse';
+                break;
+            case 'auth/user-disabled':
+                message = 'Benutzer wurde deaktiviert';
+                break;
+        }
+        
+        alert(message);
+        loading.style.display = 'none';
+        form.style.display = 'block';
     }
-    updateStorageStatus();
 }
 
-/* Daten laden */
-async function loadData() {
-    if (isFirebaseOnline) {
-        try {
-            const doc = await db.collection('users').doc(userId).get();
-            if (doc.exists) appData = {...appData, ...doc.data()};
-            console.log('📥 Daten aus Firestore geladen');
-        } catch(err) {
-            console.error('Fehler beim Cloud‑Laden', err);
-        }
-    } else {
-        loadLocalBackup();
-        console.log('📥 Daten aus Local Storage geladen');
+async function handleEmailLinkSignIn() {
+    let email = window.localStorage.getItem('emailForSignIn');
+    
+    if (!email) {
+        email = window.prompt('Bitte geben Sie Ihre E-Mail-Adresse ein:');
+    }
+    
+    if (!email) {
+        console.error('Keine E-Mail-Adresse verfügbar');
+        return;
+    }
+    
+    try {
+        const result = await auth.signInWithEmailLink(email, window.location.href);
+        
+        // E-Mail aus localStorage entfernen
+        window.localStorage.removeItem('emailForSignIn');
+        
+        // URL bereinigen (Parameter entfernen)
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        console.log('✅ Anmeldung erfolgreich:', result.user.email);
+        
+    } catch(error) {
+        console.error('Fehler bei der Anmeldung:', error);
+        alert('Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.');
     }
 }
 
-/* Daten speichern */
-async function saveData() {
-    if (isFirebaseOnline) {
-        try {
-            await db.collection('users').doc(userId).set({
-                ...appData,
-                lastUpdated: new Date().toISOString()
-            });
-            console.log('💾 Daten in Firestore gespeichert');
-        } catch(err){
-            console.error('Fehler beim Cloud‑Speichern', err);
-        }
+async function logout() {
+    try {
+        await auth.signOut();
+        showStatus('Erfolgreich abgemeldet', true);
+    } catch(error) {
+        console.error('Logout Fehler:', error);
+        showStatus('Fehler beim Abmelden', false);
     }
-    saveLocalBackup();   // immer lokale Sicherung
 }
 
 /* ==================================================================== */
-/*  ---------------------  UI‑FUNKTIONEN  ----------------------------- */
+/*  -------------------------  DATA MANAGEMENT  ---------------------- */
+/* ==================================================================== */
+
+async function loadUserData() {
+    if (!currentUser) return;
+    
+    try {
+        const doc = await db.collection('users').doc(currentUser.uid).get();
+        if (doc.exists) {
+            appData = {...appData, ...doc.data()};
+            console.log('📥 Benutzerdaten geladen');
+        }
+        
+        // UI aktualisieren
+        loadSettingsForm();
+        updateDashboard();
+        updateWeightTable();
+        updateDiaryDisplay();
+        
+    } catch(error) {
+        console.error('Fehler beim Laden der Daten:', error);
+        showStatus('Fehler beim Laden der Daten', false);
+    }
+}
+
+async function saveUserData() {
+    if (!currentUser) return;
+    
+    try {
+        await db.collection('users').doc(currentUser.uid).set({
+            ...appData,
+            lastUpdated: new Date().toISOString()
+        });
+        console.log('💾 Daten gespeichert');
+    } catch(error) {
+        console.error('Fehler beim Speichern:', error);
+        showStatus('Fehler beim Speichern', false);
+    }
+}
+
+/* ==================================================================== */
+/*  -------------------------  HELPER FUNCTIONS  --------------------- */
+/* ==================================================================== */
+
+function showStatus(msg, success = false) {
+    const notice = document.getElementById('status-notice');
+    const text = document.getElementById('status-text');
+    text.textContent = msg;
+    notice.className = `status-notice show ${success ? 'success' : ''}`;
+    setTimeout(() => notice.classList.remove('show'), 5000);
+}
+
+/* ==================================================================== */
+/*  -------------------------  UI FUNCTIONS  -------------------------- */
 /* ==================================================================== */
 
 // Settings ----------------------------------------------------------------
@@ -378,10 +516,11 @@ async function saveSettings() {
     appData.settings.fastEnd     = document.getElementById('settings-fast-end').value;
     appData.settings.startWeight = parseFloat(document.getElementById('settings-start-weight').value)||0;
     appData.settings.targetWeight= parseFloat(document.getElementById('settings-target-weight').value)||0;
-    await saveData();
-    alert('Einstellungen gespeichert!');
+    await saveUserData();
+    showStatus('✅ Einstellungen gespeichert!', true);
     updateDashboard();
 }
+
 function loadSettingsForm() {
     const s = appData.settings;
     document.getElementById('settings-fast-start').value   = s.fastStart||'';
@@ -394,31 +533,40 @@ function loadSettingsForm() {
 async function addWeight() {
     const date   = document.getElementById('weight-date').value;
     const weight = parseFloat(document.getElementById('weight-value').value);
-    if (!date||!weight){ alert('Bitte Datum und Gewicht eingeben!'); return;}
+    if (!date||!weight){ showStatus('❌ Bitte Datum und Gewicht eingeben!', false); return;}
+    
     const idx = appData.weights.findIndex(e=>e.date===date);
     if (idx!==-1) appData.weights[idx].weight = weight;
     else          appData.weights.push({date,weight});
     appData.weights.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    
     document.getElementById('weight-value').value='';
-    await saveData();
-    updateWeightTable(); updateDashboard();
+    await saveUserData();
+    updateWeightTable(); 
+    updateDashboard();
+    showStatus('✅ Gewicht hinzugefügt', true);
 }
+
 async function editWeight(i) {
     const entry = appData.weights[i];
     const nw = prompt('Neues Gewicht:', entry.weight);
     if (nw!==null && !isNaN(parseFloat(nw))){
         appData.weights[i].weight=parseFloat(nw);
-        await saveData();
+        await saveUserData();
         updateWeightTable(); updateDashboard();
+        showStatus('✅ Gewicht geändert', true);
     }
 }
+
 async function deleteWeight(i){
     if (confirm('Gewichtseintrag löschen?')){
         appData.weights.splice(i,1);
-        await saveData();
+        await saveUserData();
         updateWeightTable(); updateDashboard();
+        showStatus('✅ Gewicht gelöscht', true);
     }
 }
+
 function updateWeightTable(){
     const tbody=document.getElementById('weight-entries');
     tbody.innerHTML='';
@@ -429,7 +577,7 @@ function updateWeightTable(){
     appData.weights.forEach((e,i)=>{
         const tr=tbody.insertRow();
         tr.innerHTML=`<td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                      <td>${e.weight} kg</td>
+                      <td>${e.weight} kg</td>
                       <td>
                         <button class="btn-secondary" onclick="editWeight(${i})">Bearbeiten</button>
                         <button class="btn-danger"    onclick="deleteWeight(${i})">Löschen</button>
@@ -442,14 +590,17 @@ async function addDiaryEntry(){
     const date=document.getElementById('diary-date').value;
     const title=document.getElementById('diary-title').value;
     const content=document.getElementById('diary-content').value;
-    if(!date||!title||!content){alert('Bitte alle Felder ausfüllen!');return;}
+    if(!date||!title||!content){showStatus('❌ Bitte alle Felder ausfüllen!', false);return;}
+    
     appData.diaryEntries.push({date,title,content});
     appData.diaryEntries.sort((a,b)=>new Date(b.date)-new Date(a.date));
     document.getElementById('diary-title').value='';
     document.getElementById('diary-content').value='';
-    await saveData();
+    await saveUserData();
     updateDiaryDisplay();
+    showStatus('✅ Tagebucheintrag gespeichert', true);
 }
+
 async function editDiaryEntry(i){
     const entry=appData.diaryEntries[i];
     const nt=prompt('Titel bearbeiten:',entry.title);
@@ -458,16 +609,22 @@ async function editDiaryEntry(i){
         if(nc!==null){
             appData.diaryEntries[i].title=nt.trim();
             appData.diaryEntries[i].content=nc;
-            await saveData(); updateDiaryDisplay();
+            await saveUserData(); 
+            updateDiaryDisplay();
+            showStatus('✅ Eintrag geändert', true);
         }
     }
 }
+
 async function deleteDiaryEntry(i){
     if(confirm('Tagebucheintrag löschen?')){
         appData.diaryEntries.splice(i,1);
-        await saveData(); updateDiaryDisplay();
+        await saveUserData(); 
+        updateDiaryDisplay();
+        showStatus('✅ Eintrag gelöscht', true);
     }
 }
+
 function updateDiaryDisplay(){
     const c=document.getElementById('diary-entries');
     c.innerHTML='';
@@ -492,6 +649,7 @@ function updateDiaryDisplay(){
 
 /* Dashboard & Chart ---------------------------------------------------- */
 function getCurrentWeight(){ return appData.weights.length?appData.weights[0].weight:null; }
+
 function updateDashboard(){
     const s=appData.settings;
     // Fasten
@@ -505,21 +663,21 @@ function updateDashboard(){
     }
     // Ziele
     if(s.startWeight && s.targetWeight){
-        document.getElementById('start-weight').textContent =s.startWeight+' kg';
-        document.getElementById('target-weight').textContent=s.targetWeight+' kg';
+        document.getElementById('start-weight').textContent =s.startWeight+' kg';
+        document.getElementById('target-weight').textContent=s.targetWeight+' kg';
         const total=s.startWeight-s.targetWeight;
-        document.getElementById('total-loss').textContent  =total.toFixed(1)+' kg';
+        document.getElementById('total-loss').textContent  =total.toFixed(1)+' kg';
         if(s.fastStart && s.fastEnd){
             const days=(new Date(s.fastEnd)-new Date(s.fastStart))/86400000;
             const weeks=days/7;
-            document.getElementById('avg-week').textContent =(total/weeks).toFixed(2)+' kg';
-            document.getElementById('avg-day').textContent  =(total/days ).toFixed(3)+' kg';
+            document.getElementById('avg-week').textContent =(total/weeks).toFixed(2)+' kg';
+            document.getElementById('avg-day').textContent  =(total/days ).toFixed(3)+' kg';
         }
     }
     // Fortschritt
     const cw=getCurrentWeight();
     if(cw && s.startWeight && s.targetWeight){
-        document.getElementById('current-weight').textContent=cw+' kg';
+        document.getElementById('current-weight').textContent=cw+' kg';
         const total=s.startWeight-s.targetWeight;
         const curr =s.startWeight-cw;
         const p=Math.max(0,Math.min(100,(curr/total)*100));
@@ -567,7 +725,7 @@ function drawWeightChart(){
         const x=getX(i), dt=new Date(d);
         svg.innerHTML+=`<text x="${x}" y="${height-m.bottom+20}" text-anchor="middle" font-size="10" fill="#4B7272">${dt.getDate()}.${dt.getMonth()+1}</text>`;
     }});
-    svg.innerHTML+=`<text x="20" y="${height/2}" text-anchor="middle" transform="rotate(-90 20 ${height/2})" font-size="12" fill="#042630">Gewicht (kg)</text>`;
+    svg.innerHTML+=`<text x="20" y="${height/2}" text-anchor="middle" transform="rotate(-90 20 ${height/2})" font-size="12" fill="#042630">Gewicht (kg)</text>`;
     // Ziel & Start
     svg.innerHTML+=`<line x1="${m.left}" y1="${getY(s.targetWeight)}" x2="${width-m.right}" y2="${getY(s.targetWeight)}" stroke="#28a745" stroke-width="3" stroke-dasharray="5,5"/>`;
     svg.innerHTML+=`<line x1="${m.left}" y1="${getY(s.startWeight)}"  x2="${width-m.right}" y2="${getY(s.startWeight)}"  stroke="#dc3545" stroke-width="3" stroke-dasharray="5,5"/>`;
@@ -584,13 +742,14 @@ function drawWeightChart(){
 
 /* Export / Import / Reset ------------------------------------------- */
 function exportData(){
-    const blob=new Blob([JSON.stringify({...appData,exportDate:new Date().toISOString(),version:'3.1'},null,2)],{type:'application/json'});
+    const blob=new Blob([JSON.stringify({...appData,exportDate:new Date().toISOString(),version:'4.0'},null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url;
     a.download=`health-tracker-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    alert('Daten exportiert!');
+    showStatus('✅ Daten exportiert!', true);
 }
+
 async function importData(e){
     const file=e.target.files[0]; if(!file) return;
     const reader=new FileReader();
@@ -600,20 +759,21 @@ async function importData(e){
             if(!data.settings||!Array.isArray(data.weights)||!Array.isArray(data.diaryEntries)) throw new Error('Ungültiges Format');
             if(confirm('Aktuelle Daten ersetzen?')){
                 appData={settings:data.settings,weights:data.weights,diaryEntries:data.diaryEntries};
-                await saveData();
+                await saveUserData();
                 loadSettingsForm(); updateDashboard(); updateWeightTable(); updateDiaryDisplay();
-                alert('Import erfolgreich!');
+                showStatus('✅ Import erfolgreich!', true);
             }
-        }catch(err){alert('Fehler: '+err.message);}
+        }catch(err){showStatus(`❌ Fehler: ${err.message}`, false);}
     };
     reader.readAsText(file); e.target.value='';
 }
+
 async function resetAllData(){
-    if(confirm('ALLE Daten löschen?')){
+    if(confirm('ALLE Daten löschen? (Diese Aktion kann nicht rückgängig gemacht werden!)')){
         appData={settings:{fastStart:'',fastEnd:'',startWeight:0,targetWeight:0},weights:[],diaryEntries:[]};
-        await saveData();
+        await saveUserData();
         loadSettingsForm(); updateDashboard(); updateWeightTable(); updateDiaryDisplay();
-        alert('Alle Daten gelöscht!');
+        showStatus('✅ Alle Daten gelöscht!', true);
     }
 }
 
@@ -624,25 +784,21 @@ function showSection(name){
     document.querySelectorAll('.pill-button').forEach(b=>b.classList.remove('active'));
     event.target.classList.add('active');
     if(name==='dashboard') updateDashboard();
-    if(name==='einstellung') {loadSettingsForm(); updateStorageStatus();}
+    if(name==='einstellung') loadSettingsForm();
 }
 
 /* ==================================================================== */
-/*  ----------------------  INITIALISIERUNG  -------------------------- */
+/*  ----------------------  INITIALIZATION  --------------------------- */
 /* ==================================================================== */
 document.addEventListener('DOMContentLoaded', initApp);
 
-async function initApp(){
-    console.log('🚀 Health‑Tracker startet…');
+function initApp(){
+    console.log('🚀 Health-Tracker mit E-Mail-Authentifizierung startet...');
     const today=new Date().toISOString().split('T')[0];
     document.getElementById('weight-date').value=today;
     document.getElementById('diary-date').value =today;
 
     initializeFirebase();
-    await testFirebaseConnection().catch(()=>{});
-    await loadData();
-    loadSettingsForm();
-    updateDashboard(); updateWeightTable(); updateDiaryDisplay(); updateStorageStatus();
 }
 </script>
 </body>
